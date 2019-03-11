@@ -1,4 +1,5 @@
 const xmlns = 'http://www.w3.org/2000/svg';
+const xlinkns = 'http://www.w3.org/1999/xlink';
 
 class SVGManipulator {
   constructor() {
@@ -13,6 +14,12 @@ class SVGManipulator {
     }
 
     return document.createElementNS(xmlns, type);
+  }
+
+  getUseElement(link) {
+    const use = this.getElement('use');
+    use.setAttributeNS(xlinkns, 'href', `#${link}`);
+    return use;
   }
 
   deleteElement(element) {

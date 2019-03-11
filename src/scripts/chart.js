@@ -1,9 +1,22 @@
-import { setSvgAttributes } from './helpers/svg';
+import {
+  setSvgAttributes,
+  setSvgStyles,
+} from './helpers/svg';
 import { dateToString } from './helpers/dateTime';
 
-import { types } from './constants';
+import {
+  lineStyles,
+  labelStyles,
+  yAxisTextStyles,
+} from './styles';
 
 import SVGManipulator from './svgManipulator';
+
+import {
+  calculateData,
+  getAxisColumn,
+  getChartColumns,
+} from './utils';
 
 const minLineDelta = 1;
 
@@ -11,19 +24,39 @@ const width = 500;
 const height = 350;
 const chartHeight = 300;
 
-const showMaxLegend = 6;
+const maxLabelsAllowed = 6;
+
+const lineDefId = 'lineDefId';
 
 class Chart {
-  constructor(el, lines) {
+  constructor(el, data, lines) {
     this._wrapperElement = el;
     this._linesCount = lines;
 
+    this._startDate = null;
+    // this._endDate = null;
+    this._endDate = new Date(1544572800000);
+
+    this._data = calculateData(data, this._startDate, this._endDate);
+    this._lines = [];
+
+    this._maxValue = 1;
+
     this._svgManipulator = new SVGManipulator();
 
-    this._addSvg();
+    this.addSvg();
+    this.addDefs();
   }
 
-  _addSvg() {
+  setMaxValue(value) {
+    this._maxValue = value;
+  }
+
+  getYScale() {
+    return (chartHeight - 20) / this._maxValue;
+  }
+
+  addSvg() {
     this._svgElement = this._svgManipulator.getElement('svg');
     this._svgElement.setAttribute('height', height);
     this._svgElement.setAttribute('width', width);
@@ -31,95 +64,132 @@ class Chart {
     this._wrapperElement.append(this._svgElement);
   }
 
+  addDefs() {
+    this._defs = this._svgManipulator.getElement('defs');
+    this._svgElement.append(this._defs);
+  }
+
   renderLine(position, value) {
-    const line = this._svgManipulator.getElement('line');
-
-    const lineHeight = (chartHeight - 30) / (this._linesCount - 1);
-
-    setSvgAttributes(line, {
-      x1: 0,
-      x2: width,
-      y1: chartHeight - position * lineHeight,
-      y2: chartHeight - position * lineHeight,
-    }, {
-      stroke: '#ccc',
-      strokeWidth: 2,
-      opacity: '0.5',
-    });
+    const line = this._svgManipulator.getUseElement(lineDefId);
 
     const text = this._svgManipulator.getElement('text');
     setSvgAttributes(text, {
       x: 0,
-      y: chartHeight - position * lineHeight - 5,
-    }, {
-      fontFamily: 'Open Sans',
-      fontSize: '14px',
-      fill: '#aaa',
-    });
+      y: chartHeight - 5,
+    }, yAxisTextStyles);
     text.textContent = value;
 
-    this._svgElement.append(line);
-    this._svgElement.append(text);
+    const group = this._svgManipulator.getElement('g');
+    setSvgStyles(group, {
+      transform: `translateY(-${value * this.getYScale()}px)`,
+    });
+
+    group.appendChild(line);
+    group.appendChild(text);
+
+    this._svgElement.appendChild(group);
   }
 
-  renderLines(maxValue) {
-    let maxChartValue = maxValue - (maxValue % 10);
-    if (maxValue % 10 >= 5) {
-      maxChartValue += 10;
+  addLineDef() {
+    const lineDef = this._svgManipulator.getElement('line');
+
+    setSvgAttributes(lineDef, {
+      x1: 0,
+      x2: width,
+      y1: chartHeight,
+      y2: chartHeight,
+      id: lineDefId,
+    }, lineStyles);
+
+    this._defs.appendChild(lineDef);
+  }
+
+  renderLines() {
+    this.addLineDef();
+
+    const columns = getChartColumns(this._data);
+    let maxValue = 0;
+    for (let i = 0; i < columns.length; i += 1) {
+      const column = columns[i];
+
+      const values = column.splice(1);
+      const max = Math.max(...values);
+      maxValue = Math.max(maxValue, max);
+    }
+
+    const intPart = Math.min(10, Math.floor(maxValue.toString().length / 2));
+    const tens = 10 ** intPart;
+
+    let maxChartValue = maxValue - (maxValue % tens);
+    if (maxValue - maxChartValue >= tens / 2) {
+      maxChartValue += tens;
     }
     maxChartValue = Math.max(maxChartValue, minLineDelta * this._linesCount);
 
-    const diff = maxChartValue / this._linesCount;
+    console.log(maxValue, maxChartValue)
+    this.setMaxValue(maxValue);
+
+    const diff = maxChartValue / (this._linesCount - 1);
     for (let i = 0, j = 0; i < this._linesCount; i += 1, j += diff) {
       this.renderLine(i, j);
     }
   }
 
-  renderLegend(data) {
-    // const legendData = data.map((d) => {
-    //   return {
-    //     dateStr: dateToString(d.date),
-    //     date: d.date,
-    //   };
-    // });
+  getShowLabels() {
+    const column = getAxisColumn(this._data);
+    const labels = column.slice(1);
 
-    // const resultLegend = [];
-    // resultLegend.push(legendData[0].dateStr);
-
-    // if (legendData.length > showMaxLegend) {
-    //   let toDelete = legendData.length - showMaxLegend;
-    // }
-
-    const axis = Object.keys(data.types).find((key) => {
-      return data.types[key] === types.axis;
+    const dist = maxLabelsAllowed / labels.length;
+    const nums = labels.map((l, num) => {
+      const calc = num === 0 || num === labels.length - 1
+        ? dist * num
+        : dist * num - Number.EPSILON;
+      return {
+        calc: Math.round(calc),
+        num,
+      };
     });
 
-    const column = data.columns.find(c => c[0] === axis);
-    if (column) {
-      for (let i = 1; i < column.length; i += 1) {
-        const dateTime = new Date(column[i]);
-        const dateTimeString = dateToString(dateTime);
-
-        const text = this._svgManipulator.getElement('text');
-        setSvgAttributes(text, {
-          x: i * 10,
-          y: chartHeight,
-        }, {
-          fontFamily: 'Open Sans',
-          fontSize: '14px',
-          fill: '#aaa',
-        });
-        text.textContent = dateTimeString;
+    const result = [];
+    for (let i = 0; i < nums.length; i += 1) {
+      const n = nums[i];
+      if (!result[n.calc]) {
+        result[n.calc] = labels[n.num];
       }
+    }
+
+    return result;
+  }
+
+  renderLegend() {
+    const column = getAxisColumn(this._data);
+    const showLabels = this.getShowLabels();
+
+    const labelLen = (width - 50) / (column.length - 2);
+
+    for (let i = 1; i < column.length; i += 1) {
+      const dateTime = new Date(column[i]);
+      const dateTimeString = dateToString(dateTime);
+
+      const text = this._svgManipulator.getElement('text');
+      const position = showLabels.indexOf(column[i]);
+
+      setSvgAttributes(text, {
+        x: (i - 1) * labelLen,
+        y: height,
+      }, {
+        ...labelStyles,
+        opacity: position !== -1 ? 1 : 0,
+      });
+      text.textContent = dateTimeString;
+
+      this._svgElement.append(text);
     }
   }
 
-  render(data) {
-    // const values = data.map(d => d.value);
-    // const maxValue = Math.max(...values);
-
-    // this.renderLines(maxValue);
-    this.renderLegend(data);
+  render() {
+    this.renderLines();
+    this.renderLegend();
   }
 }
 
