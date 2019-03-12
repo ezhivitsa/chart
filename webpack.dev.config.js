@@ -21,6 +21,12 @@ module.exports = {
 
   context: path.resolve(__dirname, './src'),
 
+  node: {
+    fs: 'empty',
+    net: 'empty',
+    constants: false,
+  },
+
   module: {
     rules: [
       {
@@ -28,13 +34,29 @@ module.exports = {
         exclude: /node_modules/,
         use: ['babel-loader'],
       },
+      {
+        test: /\.pcss$/,
+        use: [
+          { loader: 'style-loader' },
+          {
+            loader: 'css-loader',
+            options: {
+              modules: true,
+              importLoaders: 1,
+              camelCase: true,
+              localIdentName: '[local]_[hash:base64:5]',
+            },
+          },
+          { loader: 'postcss-loader' },
+        ],
+      },
     ],
   },
 
   devtool: 'eval',
 
   resolve: {
-    modules: ['./src', 'node_modules'],
+    modules: ['./src/scripts', 'node_modules'],
     extensions: ['.js'],
   },
 

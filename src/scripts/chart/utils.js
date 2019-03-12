@@ -1,4 +1,4 @@
-import { types } from './constants';
+import { types } from 'constants';
 
 export const getAxisColumn = (data) => {
   const axis = Object.keys(data.types).find((key) => {
@@ -8,11 +8,14 @@ export const getAxisColumn = (data) => {
   return data.columns.find(c => c[0] === axis);
 };
 
-export const getChartColumns = (data) => {
-  const lines = Object.keys(data.types).filter((key) => {
+export const getChartColumnNames = (data) => {
+  return Object.keys(data.types).filter((key) => {
     return data.types[key] === types.line;
   });
+};
 
+export const getChartColumns = (data) => {
+  const lines = getChartColumnNames(data);
   return data.columns.filter(c => lines.includes(c[0]));
 };
 
