@@ -2,7 +2,10 @@ import { setSvgAttributes } from 'helpers/svg';
 import { dateToString } from 'helpers/dateTime';
 import { appendChild, setDomStyles } from 'helpers/dom';
 
-import MiniMap from 'minimap';
+import MiniMap from 'components/minimap';
+import Buttons from 'components/buttons';
+
+import SVGManipulator from 'svgManipulator';
 
 import {
   lineStyles,
@@ -10,8 +13,6 @@ import {
   yAxisTextStyles,
   pathStyles,
 } from './styles';
-
-import SVGManipulator from '../svgManipulator';
 
 import {
   calculateData,
@@ -50,6 +51,11 @@ class Chart {
     this._identificators = new SvgIdentificators();
 
     this._minimap = new MiniMap(this._wrapperElement);
+    this._buttons = new Buttons(
+      this._wrapperElement,
+      this._data.names,
+      this._data.colors,
+    );
 
     this.addSvg();
     this.addDefs();
@@ -264,6 +270,7 @@ class Chart {
     this.renderMiniMap();
 
     this._minimap.render();
+    this._buttons.render();
   }
 }
 

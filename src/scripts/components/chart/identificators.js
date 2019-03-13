@@ -1,4 +1,4 @@
-import Identificators from '../identificators';
+import Identificators from 'identificators';
 
 class SvgIdentificators extends Identificators {
   defs = () => this._nameWithId('defs');

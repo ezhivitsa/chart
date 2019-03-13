@@ -1,3 +1,5 @@
+const provertiesInPx = ['width', 'height'];
+
 export const appendChild = (parent, element) => {
   if (parent.contains(element)) {
     return;
@@ -8,6 +10,13 @@ export const appendChild = (parent, element) => {
 
 export const setDomStyles = (element, styles) => {
   Object.keys(styles).forEach((style) => {
-    element.style[style] = styles[style]; // eslint-disable-line
+    let value = styles[style].toString();
+    if (provertiesInPx.includes(style)) {
+      if (value.substring(value.length - 2).toLowerCase() !== 'px') {
+        value += 'px';
+      }
+    }
+
+    element.style[style] = value; // eslint-disable-line
   });
 };

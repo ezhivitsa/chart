@@ -1,6 +1,6 @@
 import chartsData from './data/chart_data.json';
 
-import Chart from './chart';
+import Chart from './components/chart';
 
 const element = document.querySelector('.chart');
 
