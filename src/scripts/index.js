@@ -1,5 +1,7 @@
 import chartsData from './data/chart_data.json';
 
+import './styles.pcss';
+
 import Chart from './components/chart';
 
 const element = document.querySelector('.chart');

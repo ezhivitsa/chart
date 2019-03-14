@@ -1,6 +1,7 @@
 import { setSvgAttributes } from 'helpers/svg';
 import { dateToString } from 'helpers/dateTime';
 import { appendChild, setDomStyles } from 'helpers/dom';
+import { getValuesFromArray } from 'helpers/array';
 
 import MiniMap from 'components/minimap';
 import Buttons from 'components/buttons';
@@ -18,7 +19,6 @@ import {
   calculateData,
   getAxisColumn,
   getChartColumns,
-  getChartColumnNames,
 } from './utils';
 
 import SvgIdentificators from './identificators';
@@ -31,6 +31,7 @@ const chartHeight = 300;
 const miniMapHeight = 100;
 
 const maxLabelsAllowed = 6;
+const maxMinimapPoints = 200;
 
 class Chart {
   constructor(el, data, lines) {
@@ -192,26 +193,7 @@ class Chart {
     const column = getAxisColumn(this._data);
     const labels = column.slice(1);
 
-    const dist = maxLabelsAllowed / labels.length;
-    const nums = labels.map((l, num) => {
-      const calc = num === 0 || num === labels.length - 1
-        ? dist * num
-        : dist * num - Number.EPSILON;
-      return {
-        calc: Math.round(calc),
-        num,
-      };
-    });
-
-    const result = [];
-    for (let i = 0; i < nums.length; i += 1) {
-      const n = nums[i];
-      if (!result[n.calc]) {
-        result[n.calc] = labels[n.num];
-      }
-    }
-
-    return result;
+    return getValuesFromArray(labels, maxLabelsAllowed);
   }
 
   renderLegend() {
@@ -244,6 +226,33 @@ class Chart {
     }
   }
 
+  renderMinimapChart(columnName, axis, column, maxValue, minValue) {
+    const [firstValue] = axis;
+    const lastValue = axis[axis.length - 1] - firstValue;
+
+    const axisColumn = axis.map(v => (v - firstValue) * width / lastValue);
+
+    const color = this._originalData.colors[columnName];
+
+    let path = `M${axisColumn[0]} ${(column[0] - minValue) * miniMapHeight / maxValue}`;
+    for (let j = 1; j < column.length; j += 1) {
+      path += ` L${axisColumn[j]} ${(column[j] - minValue) * miniMapHeight / maxValue}`;
+    }
+
+    const pathEl = this._svgManipulator.getElement(
+      'path',
+      this._identificators.pathDef(columnName),
+    );
+    setSvgAttributes(pathEl, {
+      d: path,
+    }, {
+      ...pathStyles,
+      stroke: color,
+    });
+
+    return pathEl;
+  }
+
   renderMiniMap() {
     const group = this._svgManipulator.getElement('g', this._identificators.minimapGroup());
 
@@ -251,14 +260,34 @@ class Chart {
       transform: `translateY(${height}px)`,
     });
 
-    const columnNames = getChartColumnNames(this._data);
-    for (let i = 0; i < columnNames.length; i += 1) {
-      const use = this._svgManipulator.getUseElement(
-        this._identificators.pathDef(columnNames[i]),
-        this._identificators.pathMiniMap(columnNames[i]),
-      );
+    const columns = getChartColumns(this._originalData);
 
-      appendChild(group, use);
+    let axisColumn = getAxisColumn(this._originalData).slice(1);
+    axisColumn = getValuesFromArray(axisColumn, maxMinimapPoints);
+
+    let maxValue = 0;
+    let minValue = Infinity;
+
+    const dataColumns = [];
+
+    for (let i = 0; i < columns.length; i += 1) {
+      const column = columns[i].slice(1);
+      const dataColumn = getValuesFromArray(column, maxMinimapPoints);
+      dataColumns.push(dataColumn);
+
+      maxValue = Math.max(maxValue, ...dataColumn);
+      minValue = Math.min(minValue, ...dataColumn);
+    }
+
+    for (let i = 0; i < columns.length; i += 1) {
+      const path = this.renderMinimapChart(
+        columns[i][0],
+        axisColumn,
+        dataColumns[i],
+        maxValue - minValue,
+        minValue,
+      );
+      appendChild(group, path);
     }
 
     appendChild(this._svgElement, group);
