@@ -3,16 +3,16 @@ import { dateToString } from 'helpers/dateTime';
 import { appendChild, setDomStyles } from 'helpers/dom';
 import { getValuesFromArray } from 'helpers/array';
 
-import MiniMap from 'components/minimap';
-import Buttons from 'components/buttons';
-
 import SVGManipulator from 'svgManipulator';
+
+import MiniMapSelector from 'components/minimapSelector';
+import Buttons from 'components/buttons';
+import MiniMap from './components/minimap';
 
 import {
   lineStyles,
   labelStyles,
   yAxisTextStyles,
-  pathStyles,
 } from './styles';
 
 import {
@@ -23,6 +23,8 @@ import {
 
 import SvgIdentificators from './identificators';
 
+import styles from './styles.pcss';
+
 const minLineDelta = 1;
 
 const width = 500;
@@ -31,7 +33,6 @@ const chartHeight = 300;
 const miniMapHeight = 100;
 
 const maxLabelsAllowed = 6;
-const maxMinimapPoints = 200;
 
 class Chart {
   constructor(el, data, lines) {
@@ -51,11 +52,19 @@ class Chart {
     this._svgManipulator = new SVGManipulator();
     this._identificators = new SvgIdentificators();
 
-    this._minimap = new MiniMap(this._wrapperElement);
+    this._minimapSelector = new MiniMapSelector(this._wrapperElement);
+    this._minimap = new MiniMap(
+      this.miniMapGroup(),
+      this._originalData,
+      width,
+      height,
+      miniMapHeight,
+    );
     this._buttons = new Buttons(
       this._wrapperElement,
       this._data.names,
       this._data.colors,
+      this.onSelectedChanged,
     );
 
     this.addSvg();
@@ -71,11 +80,27 @@ class Chart {
     return (chartHeight - 20) / this._maxValue;
   }
 
+  onSelectedChanged = (visibleList, hiddenList) => {
+    this._minimap.updateVisible(visibleList, hiddenList);
+  }
+
+  miniMapGroup() {
+    return this._svgManipulator.getElement('g', this._identificators.miniMapGroupWrap);
+  }
+
   addSvg() {
-    this._svgElement = this._svgManipulator.getElement('svg', 'container');
-    this._svgElement.setAttribute('height', height + miniMapHeight);
-    this._svgElement.setAttribute('width', width);
-    this._svgElement.setAttribute('viewBox', `0 0 ${width} ${height + miniMapHeight}`);
+    this._svgElement = this._svgManipulator.createElement(
+      'svg',
+      this._identificators.container,
+      {
+        attributes: {
+          height: height + miniMapHeight,
+          width,
+          viewBox: `0 0 ${width} ${height + miniMapHeight}`,
+        },
+        className: styles.wrap,
+      }
+    );
     this._wrapperElement.append(this._svgElement);
   }
 
@@ -113,7 +138,6 @@ class Chart {
         d: path,
         id: this._identificators.pathDef(columnName),
       }, {
-        ...pathStyles,
         stroke: color,
       });
 
@@ -123,38 +147,54 @@ class Chart {
 
   renderLine(position, value) {
     const line = this._svgManipulator.getUseElement(
-      this._identificators.lineDef(),
+      this._identificators.lineDef,
       this._identificators.line(value),
     );
 
-    const text = this._svgManipulator.getElement('text', this._identificators.lineText(value));
-    setSvgAttributes(text, {
-      x: 0,
-      y: chartHeight - 5,
-    }, yAxisTextStyles);
-    text.textContent = value;
+    const text = this._svgManipulator.createElement(
+      'text',
+      this._identificators.lineText(value),
+      {
+        attributes: {
+          x: 0,
+          y: chartHeight - 5,
+        },
+      },
+      value,
+    );
 
-    const group = this._svgManipulator.getElement('g', this._identificators.lineGroup(value));
-    setDomStyles(group, {
-      transform: `translateY(-${value * this.getYScale()}px)`,
-    });
-
-    appendChild(group, line);
-    appendChild(group, text);
+    const group = this._svgManipulator.createElement(
+      'g',
+      this._identificators.lineGroup(value),
+      {
+        styles: {
+          transform: `translateY(-${value * this.getYScale()}px)`,
+        },
+      },
+      [
+        line,
+        text,
+      ],
+    );
 
     appendChild(this._svgElement, group);
   }
 
   addLineDef() {
-    const lineDef = this._svgManipulator.getElement('line', this._identificators.lineDef());
-
-    setSvgAttributes(lineDef, {
-      x1: 0,
-      x2: width,
-      y1: chartHeight,
-      y2: chartHeight,
-      id: this._identificators.lineDef(),
-    }, lineStyles);
+    const lineDef = this._svgManipulator.createElement(
+      'line',
+      this._identificators.lineDef,
+      {
+        attributes: {
+          x1: 0,
+          x2: width,
+          y1: chartHeight,
+          y2: chartHeight,
+          id: this._identificators.lineDef,
+        },
+        styles: lineStyles,
+      },
+    );
 
     appendChild(this._defs, lineDef);
   }
@@ -226,71 +266,8 @@ class Chart {
     }
   }
 
-  renderMinimapChart(columnName, axis, column, maxValue, minValue) {
-    const [firstValue] = axis;
-    const lastValue = axis[axis.length - 1] - firstValue;
-
-    const axisColumn = axis.map(v => (v - firstValue) * width / lastValue);
-
-    const color = this._originalData.colors[columnName];
-
-    let path = `M${axisColumn[0]} ${(column[0] - minValue) * miniMapHeight / maxValue}`;
-    for (let j = 1; j < column.length; j += 1) {
-      path += ` L${axisColumn[j]} ${(column[j] - minValue) * miniMapHeight / maxValue}`;
-    }
-
-    const pathEl = this._svgManipulator.getElement(
-      'path',
-      this._identificators.pathDef(columnName),
-    );
-    setSvgAttributes(pathEl, {
-      d: path,
-    }, {
-      ...pathStyles,
-      stroke: color,
-    });
-
-    return pathEl;
-  }
-
   renderMiniMap() {
-    const group = this._svgManipulator.getElement('g', this._identificators.minimapGroup());
-
-    setDomStyles(group, {
-      transform: `translateY(${height}px)`,
-    });
-
-    const columns = getChartColumns(this._originalData);
-
-    let axisColumn = getAxisColumn(this._originalData).slice(1);
-    axisColumn = getValuesFromArray(axisColumn, maxMinimapPoints);
-
-    let maxValue = 0;
-    let minValue = Infinity;
-
-    const dataColumns = [];
-
-    for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i].slice(1);
-      const dataColumn = getValuesFromArray(column, maxMinimapPoints);
-      dataColumns.push(dataColumn);
-
-      maxValue = Math.max(maxValue, ...dataColumn);
-      minValue = Math.min(minValue, ...dataColumn);
-    }
-
-    for (let i = 0; i < columns.length; i += 1) {
-      const path = this.renderMinimapChart(
-        columns[i][0],
-        axisColumn,
-        dataColumns[i],
-        maxValue - minValue,
-        minValue,
-      );
-      appendChild(group, path);
-    }
-
-    appendChild(this._svgElement, group);
+    appendChild(this._svgElement, this.miniMapGroup());
   }
 
   render() {
@@ -299,6 +276,7 @@ class Chart {
     this.renderMiniMap();
 
     this._minimap.render();
+    this._minimapSelector.render();
     this._buttons.render();
   }
 }

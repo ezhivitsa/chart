@@ -1,0 +1,122 @@
+.button {
+  display: inline-flex;
+  border-radius: 20px;
+  border: 1px solid #ccc;
+  padding: 6px;
+  align-items: center;
+  cursor: pointer;
+
+  &:not(:first-of-type) {
+    margin-left: 15px;
+  }
+}
+
+.checkbox {
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+
+  &:before {
+    content: '';
+    display: block;
+    margin: auto;
+    border-radius: 50%;
+    background: #fff;
+    width: 0;
+    height: 0;
+    transition: all 0.3s;
+  }
+
+  &.unchecked {
+    &:before {
+      width: 18px;
+      height: 18px;
+    }
+
+    .icon {
+      top: 8px;
+      left: 7px;
+      font-size: 8px;
+      opacity: 0;
+    }
+
+    .circle {
+      animation-name: circle;
+      animation-duration: 0.5s;
+    }
+  }
+
+  &.checked {
+    .circle {
+      animation-name: circle-reverse;
+      animation-duration: 0.5s;
+    }
+  }
+}
+
+.icon {
+  position: absolute;
+  top: 6px;
+  left: 5px;
+  color: #fff;
+  font-size: 12px;
+  opacity: 1;
+  transition: all 0.6s;
+}
+
+.button-text {
+  margin: 0 8px 0 10px;
+  font-size: 15px;
+}
+
+.circle {
+  display: block;
+  position: absolute;
+  border-radius: 50%;
+  border-style: solid;
+  border-width: 0;
+  border-color: rgb(61, 194, 63);
+}
+
+@keyframes circle {
+  0% {
+    width: 40px;
+    height: 40px;
+    opacity: 0.2;
+    top: -19px;
+    left: -19px;
+    border-width: 10px;
+  }
+
+  100% {
+    width: 90px;
+    height: 90px;
+    top: -34px;
+    left: -34px;
+    border-width: 0px;
+    opacity: 0;
+  }
+}
+
+@keyframes circle-reverse {
+  100% {
+    width: 40px;
+    height: 40px;
+    opacity: 0.2;
+    top: -9px;
+    left: -9px;
+    border-width: 0px;
+  }
+
+  0% {
+    width: 80px;
+    height: 80px;
+    top: -40px;
+    left: -40px;
+    border-width: 10px;
+    opacity: 0.1;
+  }
+}

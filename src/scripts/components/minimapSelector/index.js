@@ -13,7 +13,7 @@ const selectorTypes = {
 
 const minWidth = 50;
 
-class MiniMap {
+class MiniMapSelector {
   constructor(parent) {
     this._parent = parent;
     this._domManipulator = new DOMManipulator();
@@ -35,8 +35,8 @@ class MiniMap {
     e.preventDefault();
     e.stopPropagation();
 
-    this._mouseDownX = e.pageX || e.touches[0].pageX;
-    this._mouseUpX = e.pageX || e.touches[0].pageX;
+    this._mouseDownX = typeof e.pageX === 'number' ? e.pageX : e.touches[0].pageX;
+    this._mouseUpX = this._mouseDownX;
 
     const positions = Object.values(selectorTypes);
     positions.forEach((pos) => {
@@ -58,7 +58,7 @@ class MiniMap {
   }
 
   onMove = (e) => {
-    this._mouseUpX = e.pageX || e.touches[0].pageX;
+    this._mouseUpX = typeof e.pageX === 'number' ? e.pageX : e.touches[0].pageX;
 
     const left = this._domManipulator.getElementById(this._identificators.left);
     const selector = this._domManipulator.getElementById(this._identificators.selector);
@@ -104,75 +104,86 @@ class MiniMap {
   }
 
   renderSelector() {
-    const selector = this._domManipulator.getElement('div', this._identificators.selector);
-    selector.classList.add(styles.selector);
-    this._domManipulator.addEventListener(
-      this._identificators.selector,
-      ['mousedown', 'touchstart'],
-      this.onMousedown(selectorTypes.center),
-    );
-    setDomStyles(selector, { width: this._width - this._leftPosition - this._rightPosition });
-
-    const left = this._domManipulator.getElement('div', this._identificators.leftSelector);
-    left.classList.add(styles.leftSelector);
-    this._domManipulator.addEventListener(
+    const left = this._domManipulator.createElement(
+      'div',
       this._identificators.leftSelector,
-      ['mousedown', 'touchstart'],
-      this.onMousedown(selectorTypes.left),
+      {
+        className: styles.leftSelector,
+        onMouseDown: this.onMousedown(selectorTypes.left),
+        onTouchStart: this.onMousedown(selectorTypes.left),
+      },
     );
 
-    const right = this._domManipulator.getElement('div', this._identificators.rightSelector);
-    right.classList.add(styles.rightSelector);
-    this._domManipulator.addEventListener(
+    const right = this._domManipulator.createElement(
+      'div',
       this._identificators.rightSelector,
-      ['mousedown', 'touchstart'],
-      this.onMousedown(selectorTypes.right),
+      {
+        className: styles.rightSelector,
+        onMouseDown: this.onMousedown(selectorTypes.right),
+        onTouchStart: this.onMousedown(selectorTypes.right),
+      },
     );
 
-    appendChild(selector, left);
-    appendChild(selector, right);
+    const selector = this._domManipulator.createElement(
+      'div',
+      this._identificators.selector,
+      {
+        className: styles.selector,
+        onMouseDown: this.onMousedown(selectorTypes.center),
+        onTouchStart: this.onMousedown(selectorTypes.center),
+        styles: { width: this._width - this._leftPosition - this._rightPosition },
+      },
+      [
+        left,
+        right,
+      ],
+    );
 
     return selector;
   }
 
   render() {
-    const wrap = this._domManipulator.getElement('div', this._identificators.wrap);
-    wrap.classList.add(styles.wrap);
-    this._domManipulator.addEventListener(
-      this._identificators.wrap,
-      'mouseleave',
-      this.onOut,
-    );
-    this._domManipulator.addEventListener(
-      this._identificators.wrap,
-      ['mouseup', 'touchend'],
-      this.onOut,
-    );
-
-    this._domManipulator.addEventListener(
-      this._identificators.wrap,
-      ['mousemove', 'touchmove'],
-      this.onMove,
-    );
-
-    setDomStyles(wrap, { width: this._width });
-
     const selector = this.renderSelector();
 
-    const left = this._domManipulator.getElement('div', this._identificators.left);
-    left.classList.add(styles.left);
-    setDomStyles(left, { width: this._leftPosition });
+    const left = this._domManipulator.createElement(
+      'div',
+      this._identificators.left,
+      {
+        className: styles.left,
+        styles: { width: this._leftPosition },
+      },
+    );
 
-    const right = this._domManipulator.getElement('div', this._identificators.right);
-    right.classList.add(styles.right);
-    setDomStyles(right, { width: this._rightPosition });
+    const right = this._domManipulator.createElement(
+      'div',
+      this._identificators.right,
+      {
+        className: styles.right,
+        styles: { width: this._rightPosition },
+      },
+    );
 
-    appendChild(wrap, left);
-    appendChild(wrap, selector);
-    appendChild(wrap, right);
+    const wrap = this._domManipulator.createElement(
+      'div',
+      this._identificators.wrap,
+      {
+        className: styles.wrap,
+        styles: { width: this._width },
+        onMouseLeave: this.onOut,
+        onMouseUp: this.onOut,
+        onTouchEnd: this.onOut,
+        onMouseMove: this.onMove,
+        onTouchMove: this.onMove,
+      },
+      [
+        left,
+        selector,
+        right,
+      ],
+    );
 
     appendChild(this._parent, wrap);
   }
 }
 
-export default MiniMap;
+export default MiniMapSelector;

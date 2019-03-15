@@ -1,3 +1,40 @@
+import { appendChild, setDomStyles } from 'helpers/dom';
+
+const eventFields = [
+  {
+    field: 'onClick',
+    event: 'click',
+  },
+  {
+    field: 'onMouseMove',
+    event: 'mousemove',
+  },
+  {
+    field: 'onMouseLeave',
+    event: 'mouseleave',
+  },
+  {
+    field: 'onMouseUp',
+    event: 'mouseup',
+  },
+  {
+    field: 'onMouseDown',
+    event: 'mousedown',
+  },
+  {
+    field: 'onTouchEnd',
+    event: 'touchend',
+  },
+  {
+    field: 'onTouchMove',
+    event: 'touchmove',
+  },
+  {
+    field: 'onTouchStart',
+    event: 'touchstart',
+  },
+];
+
 class DOMManipulator {
   constructor() {
     this._cache = {};
@@ -19,6 +56,39 @@ class DOMManipulator {
     }
 
     return this._cache[identificator];
+  }
+
+  createElement(type, identificator, options, children) {
+    const element = this.getElement(type, identificator);
+
+    if (options.className instanceof Array) {
+      element.classList.add(...options.className);
+    } else if (typeof options.className === 'string') {
+      element.classList.add(options.className);
+    }
+
+    if (options.styles) {
+      setDomStyles(element, options.styles);
+    }
+
+    eventFields.forEach((eventField) => {
+      if (options[eventField.field]) {
+        this.clearEvents(identificator, eventField.event);
+        this.addEventListener(identificator, eventField.event, options[eventField.field]);
+      }
+    });
+
+    if (children instanceof Array) {
+      children.forEach((child) => {
+        appendChild(element, child);
+      });
+    } else if (children instanceof HTMLElement) {
+      appendChild(element, children);
+    } else if (typeof children === 'string') {
+      element.textContent = children;
+    }
+
+    return element;
   }
 
   getElementById(identificator) {
@@ -52,6 +122,20 @@ class DOMManipulator {
         }
       }
     });
+  }
+
+  clearEvents(identificator, eventType) {
+    const element = this._cache[identificator];
+    if (!element) {
+      return;
+    }
+
+    this._events[identificator] = this._events[identificator] || {};
+    const events = this._events[identificator];
+
+    if (events[eventType]) {
+      events[eventType].callbacks = [];
+    }
   }
 }
 
