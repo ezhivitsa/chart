@@ -1,38 +1,33 @@
-import { setSvgAttributes } from 'helpers/svg';
-import { dateToString } from 'helpers/dateTime';
-import { appendChild, setDomStyles } from 'helpers/dom';
-import { getValuesFromArray } from 'helpers/array';
+import { appendChild } from 'helpers/dom';
 
-import SVGManipulator from 'svgManipulator';
+import SVGManipulator from 'svg-manipulator';
+import DOMManipulator from 'dom-manipulator';
 
-import MiniMapSelector from 'components/minimapSelector';
+import MiniMapSelector from 'components/minimap-selector';
 import Buttons from 'components/buttons';
 import MiniMap from './components/minimap';
+import ChartsGroup from './components/charts-group';
+import LabelsGroup from './components/labels-group';
+import LinesGroup from './components/lines-group';
 
 import {
-  lineStyles,
-  labelStyles,
-  yAxisTextStyles,
-} from './styles';
-
-import {
-  calculateData,
   getAxisColumn,
-  getChartColumns,
+  findAxisValue,
 } from './utils';
 
 import SvgIdentificators from './identificators';
 
 import styles from './styles.pcss';
 
-const minLineDelta = 1;
-
 const width = 500;
 const height = 350;
 const chartHeight = 300;
-const miniMapHeight = 100;
+const miniMapHeight = 50;
+const legendHeight = 20;
+const miniMapPadding = 10;
+const chartTopPaddingHeight = 20;
 
-const maxLabelsAllowed = 6;
+const yAxisWidth = 50;
 
 class Chart {
   constructor(el, data, lines) {
@@ -40,25 +35,25 @@ class Chart {
     this._linesCount = lines;
 
     this._startDate = null;
-    // this._endDate = null;
-    this._endDate = new Date(1544572800000);
+    this._endDate = null;
 
-    this._originalData = data;
-    this._data = calculateData(data, this._startDate, this._endDate);
-    this._lines = [];
-
-    this._maxValue = 1;
+    this._data = data;
 
     this._svgManipulator = new SVGManipulator();
+    this._domManipulator = new DOMManipulator();
     this._identificators = new SvgIdentificators();
 
-    this._minimapSelector = new MiniMapSelector(this._wrapperElement);
     this._minimap = new MiniMap(
       this.miniMapGroup(),
-      this._originalData,
+      this._data,
       width,
-      height,
       miniMapHeight,
+    );
+    this._chartsGroup = new ChartsGroup(
+      this.chartsGroup(),
+      this._data,
+      width - yAxisWidth,
+      chartHeight - chartTopPaddingHeight,
     );
     this._buttons = new Buttons(
       this._wrapperElement,
@@ -69,23 +64,87 @@ class Chart {
 
     this.addSvg();
     this.addDefs();
-    this.addChartDefs();
-  }
 
-  setMaxValue(value) {
-    this._maxValue = value;
-  }
+    this._minimapSelector = new MiniMapSelector(
+      this._wrap,
+      this.onSelectorUpdate,
+    );
 
-  getYScale() {
-    return (chartHeight - 20) / this._maxValue;
+    this._legend = new LabelsGroup(
+      this.labelsGroup(),
+      this._data,
+      width,
+    );
+
+    this._lines = new LinesGroup(
+      this.linesGroup(),
+      this._defs,
+      this._data,
+      width,
+      chartHeight,
+      this._startDate,
+      this._endDate,
+    );
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {
     this._minimap.updateVisible(visibleList, hiddenList);
+
+    this._chartsGroup.updateVisible(visibleList, hiddenList);
+    this._chartsGroup.render();
+
+    this._lines.updateVisible(visibleList);
+    this._lines.renderNewLines();
+    this._lines.animateLines();
+  }
+
+  onSelectorUpdate = (start, end) => {
+    const axisColumn = getAxisColumn(this._data).slice(1);
+
+    this._startDate = findAxisValue(axisColumn, start);
+    this._endDate = findAxisValue(axisColumn, end);
+
+    this._chartsGroup.updateArea(this._startDate, this._endDate);
+    this._chartsGroup.render();
   }
 
   miniMapGroup() {
-    return this._svgManipulator.getElement('g', this._identificators.miniMapGroupWrap);
+    return this._svgManipulator.createElement(
+      'g',
+      this._identificators.miniMapGroupWrap,
+      {
+        styles: {
+          transform: `translateY(${height + miniMapPadding / 2}px)`,
+        },
+      },
+    );
+  }
+
+  chartsGroup() {
+    return this._svgManipulator.createElement(
+      'g',
+      this._identificators.chartsGroup,
+      {
+        styles: { transform: `translate(${yAxisWidth}px, ${chartTopPaddingHeight}px)` },
+      },
+    );
+  }
+
+  labelsGroup() {
+    return this._svgManipulator.createElement(
+      'g',
+      this._identificators.labelsGroup,
+      {
+        styles: { transform: `translateY(${chartHeight + legendHeight}px)` },
+      },
+    );
+  }
+
+  linesGroup() {
+    return this._svgManipulator.getElement(
+      'g',
+      this._identificators.linesGroup,
+    );
   }
 
   addSvg() {
@@ -94,190 +153,49 @@ class Chart {
       this._identificators.container,
       {
         attributes: {
-          height: height + miniMapHeight,
+          height: height + miniMapHeight + miniMapPadding,
           width,
-          viewBox: `0 0 ${width} ${height + miniMapHeight}`,
+          viewBox: `0 0 ${width} ${height + miniMapHeight + miniMapPadding}`,
         },
-        className: styles.wrap,
-      }
+        className: styles.wrapSvg,
+      },
     );
-    this._wrapperElement.append(this._svgElement);
+    this._wrap = this._domManipulator.createElement(
+      'div',
+      this._identificators.wrap,
+      {
+        styles: { width },
+        className: styles.wrap,
+      },
+      this._svgElement,
+    );
+
+    this._wrapperElement.append(this._wrap);
   }
 
   addDefs() {
-    this._defs = this._svgManipulator.getElement('defs', this._identificators.defs());
+    this._defs = this._svgManipulator.getElement('defs', this._identificators.defs);
     this._svgElement.append(this._defs);
   }
 
-  addChartDefs() {
-    let axisColumn = getAxisColumn(this._originalData).slice(1);
-    const [firstValue] = axisColumn;
-    const lastValue = axisColumn[axisColumn.length - 1] - firstValue;
-
-    axisColumn = axisColumn.map(v => (v - firstValue) * width / lastValue);
-
-    const columns = getChartColumns(this._originalData);
-
-    for (let i = 0; i < columns.length; i += 1) {
-      const [columnName] = columns[i];
-      const color = this._originalData.colors[columnName];
-
-      const column = columns[i].slice(1);
-      const maxValue = Math.max(...column);
-
-      let path = `M${axisColumn[0]} ${column[0] * miniMapHeight / maxValue}`;
-      for (let j = 1; j < column.length; j += 1) {
-        path += ` L${axisColumn[j]} ${column[j] * miniMapHeight / maxValue}`;
-      }
-
-      const pathEl = this._svgManipulator.getElement(
-        'path',
-        this._identificators.pathDef(columnName),
-      );
-      setSvgAttributes(pathEl, {
-        d: path,
-        id: this._identificators.pathDef(columnName),
-      }, {
-        stroke: color,
-      });
-
-      appendChild(this._defs, pathEl);
-    }
-  }
-
-  renderLine(position, value) {
-    const line = this._svgManipulator.getUseElement(
-      this._identificators.lineDef,
-      this._identificators.line(value),
-    );
-
-    const text = this._svgManipulator.createElement(
-      'text',
-      this._identificators.lineText(value),
-      {
-        attributes: {
-          x: 0,
-          y: chartHeight - 5,
-        },
-      },
-      value,
-    );
-
-    const group = this._svgManipulator.createElement(
-      'g',
-      this._identificators.lineGroup(value),
-      {
-        styles: {
-          transform: `translateY(-${value * this.getYScale()}px)`,
-        },
-      },
-      [
-        line,
-        text,
-      ],
-    );
-
-    appendChild(this._svgElement, group);
-  }
-
-  addLineDef() {
-    const lineDef = this._svgManipulator.createElement(
-      'line',
-      this._identificators.lineDef,
-      {
-        attributes: {
-          x1: 0,
-          x2: width,
-          y1: chartHeight,
-          y2: chartHeight,
-          id: this._identificators.lineDef,
-        },
-        styles: lineStyles,
-      },
-    );
-
-    appendChild(this._defs, lineDef);
-  }
-
-  renderLines() {
-    this.addLineDef();
-
-    const columns = getChartColumns(this._data);
-    let maxValue = 0;
-    for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i];
-
-      const values = column.splice(1);
-      const max = Math.max(...values);
-      maxValue = Math.max(maxValue, max);
-    }
-
-    const intPart = Math.min(10, Math.floor(maxValue.toString().length / 2));
-    const tens = 10 ** intPart;
-
-    let maxChartValue = maxValue - (maxValue % tens);
-    if (maxValue - maxChartValue >= tens / 2) {
-      maxChartValue += tens;
-    }
-    maxChartValue = Math.max(maxChartValue, minLineDelta * this._linesCount);
-
-    this.setMaxValue(maxValue);
-
-    const diff = maxChartValue / (this._linesCount - 1);
-    for (let i = 0, j = 0; i < this._linesCount; i += 1, j += diff) {
-      this.renderLine(i, j);
-    }
-  }
-
-  getShowLabels() {
-    const column = getAxisColumn(this._data);
-    const labels = column.slice(1);
-
-    return getValuesFromArray(labels, maxLabelsAllowed);
-  }
-
-  renderLegend() {
-    const column = getAxisColumn(this._data);
-    const showLabels = this.getShowLabels();
-
-    const labelLen = (width - 45) / (column.length - 1);
-    const showLabelLen = (width - 45) / (showLabels.length - 2);
-
-    for (let i = 1; i < column.length; i += 1) {
-      const dateTime = new Date(column[i]);
-      const dateTimeString = dateToString(dateTime);
-
-      const text = this._svgManipulator.getElement(
-        'text',
-        this._identificators.legend(dateTimeString),
-      );
-      const position = showLabels.indexOf(column[i]);
-
-      setSvgAttributes(text, {
-        x: position !== -1 ? position * showLabelLen : (i - 1) * labelLen,
-        y: height,
-      }, {
-        ...labelStyles,
-        opacity: position !== -1 ? 1 : 0,
-      });
-      text.textContent = dateTimeString;
-
-      this._svgElement.append(text);
-    }
-  }
-
-  renderMiniMap() {
-    appendChild(this._svgElement, this.miniMapGroup());
+  renderGroups() {
+    appendChild(this._svgElement, [
+      this.linesGroup(),
+      this.chartsGroup(),
+      this.labelsGroup(),
+      this.miniMapGroup(),
+    ]);
   }
 
   render() {
-    this.renderLines();
-    this.renderLegend();
-    this.renderMiniMap();
+    this.renderGroups();
 
+    this._chartsGroup.render();
+    this._legend.render();
     this._minimap.render();
     this._minimapSelector.render();
     this._buttons.render();
+    this._lines.render();
   }
 }
 

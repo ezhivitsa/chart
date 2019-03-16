@@ -2,7 +2,7 @@ import { appendChild } from 'helpers/dom';
 
 import Button from 'components/ui/button';
 
-import DOMManipulator from 'domManipulator';
+import DOMManipulator from 'dom-manipulator';
 import DOMIdentificators from './identificators';
 
 import styles from './styles.pcss';

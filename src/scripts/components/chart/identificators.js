@@ -5,29 +5,33 @@ class SvgIdentificators extends Identificators {
     return this._nameWithId('container');
   }
 
-  defs = () => this._nameWithId('defs');
-
-  pathDef = columnName => this._nameWithId(`path-def-${columnName}`);
-
-  get lineDef() {
-    return this._nameWithId('line-def');
+  get defs() {
+    return this._nameWithId('defs');
   }
-
-  line = value => this._nameWithId(`line-${value}`);
-
-  lineText = value => this._nameWithId(`line-text-${value}`);
-
-  lineGroup = value => this._nameWithId(`line-group-${value}`);
-
-  legend = dateTimeString => this._nameWithId(`legend-${dateTimeString}`);
-
-  minimapGroup = () => this._nameWithId('minimap-group');
-
-  pathMiniMap = columnName => this._nameWithId(`path-minimap-${columnName}`);
 
   get miniMapGroupWrap() {
     return this._nameWithId('minimap-group-wrap');
   }
+
+  get chartsGroup() {
+    return this._nameWithId('charts-group');
+  }
+
+  get labelsGroup() {
+    return this._nameWithId('labels-group');
+  }
+
+  get linesGroup() {
+    return this._nameWithId('lines-group');
+  }
+
+  get wrap() {
+    return this._nameWithId('wrap');
+  }
+
+  pathDef = columnName => this._nameWithId(`path-def-${columnName}`);
+
+  pathMiniMap = columnName => this._nameWithId(`path-minimap-${columnName}`);
 }
 
 export default SvgIdentificators;

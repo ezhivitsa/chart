@@ -6,17 +6,10 @@ const xlinkns = 'http://www.w3.org/1999/xlink';
 
 class SVGManipulator {
   constructor() {
-    this._deleteQueue = [];
     this._cache = {};
   }
 
   getElement(type, identificator) {
-    const existingElement = this._deleteQueue.findIndex(el => el.type === type);
-
-    if (existingElement !== -1) {
-      return this._deleteQueue.months.splice(existingElement, 1)[0];
-    }
-
     if (!this._cache[identificator]) {
       this._cache[identificator] = document.createElementNS(xmlns, type);
     }
@@ -29,7 +22,12 @@ class SVGManipulator {
   }
 
   createElement(type, identificator, options, children) {
-    const element = this.getElement(type, identificator);
+    this.getElement(type, identificator);
+    return this.updateElement(identificator, options, children);
+  }
+
+  updateElement(identificator, options, children) {
+    const element = this.getElementById(identificator);
 
     if (options.className instanceof Array) {
       element.classList.add(...options.className);
@@ -65,11 +63,15 @@ class SVGManipulator {
   }
 
   deleteElement(element) {
-    const type = element.nodeName.toLowerCase;
-    this._deleteQueue.push({
-      type,
-      element,
-    });
+    if (element instanceof Element) {
+      element.parentNode.removeChild(element);
+    } else if (typeof element === 'string') {
+      const el = this.getElementById(element);
+
+      if (el) {
+        el.parentNode.removeChild(el);
+      }
+    }
   }
 }
 

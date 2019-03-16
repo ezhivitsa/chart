@@ -1,6 +1,6 @@
 import { appendChild, setDomStyles } from 'helpers/dom';
 
-import DOMManipulator from 'domManipulator';
+import DOMManipulator from 'dom-manipulator';
 import DOMIdentificators from './identificators';
 
 import styles from './styles.pcss';
@@ -14,8 +14,10 @@ const selectorTypes = {
 const minWidth = 50;
 
 class MiniMapSelector {
-  constructor(parent) {
+  constructor(parent, onUpdate) {
     this._parent = parent;
+    this._onUpdate = onUpdate;
+
     this._domManipulator = new DOMManipulator();
     this._identificators = new DOMIdentificators();
 
@@ -101,6 +103,11 @@ class MiniMapSelector {
     setDomStyles(left, { width: leftPosition });
     setDomStyles(selector, { width: this._width - leftPosition - rightPosition });
     setDomStyles(right, { width: rightPosition });
+
+    this._onUpdate(
+      leftPosition / this._width,
+      1 - rightPosition / this._width,
+    );
   }
 
   renderSelector() {

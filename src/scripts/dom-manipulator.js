@@ -82,7 +82,7 @@ class DOMManipulator {
       children.forEach((child) => {
         appendChild(element, child);
       });
-    } else if (children instanceof HTMLElement) {
+    } else if (children instanceof Element) {
       appendChild(element, children);
     } else if (typeof children === 'string') {
       element.textContent = children;

@@ -1,11 +1,16 @@
 const provertiesInPx = ['width', 'height'];
 
-export const appendChild = (parent, element) => {
+const appendElement = (parent, element) => {
   if (parent.contains(element)) {
     return;
   }
 
   parent.appendChild(element);
+};
+
+export const appendChild = (parent, element) => {
+  const elements = element instanceof Array ? element : [element];
+  elements.forEach(el => appendElement(parent, el));
 };
 
 export const setDomStyles = (element, styles) => {
