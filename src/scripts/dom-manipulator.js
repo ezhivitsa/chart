@@ -62,7 +62,8 @@ class DOMManipulator {
     const element = this.getElement(type, identificator);
 
     if (options.className instanceof Array) {
-      element.classList.add(...options.className);
+      const classNames = options.className.filter(c => !!c);
+      element.classList.add(...classNames);
     } else if (typeof options.className === 'string') {
       element.classList.add(options.className);
     }

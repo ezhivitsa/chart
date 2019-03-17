@@ -1,4 +1,5 @@
 import { appendChild } from 'helpers/dom';
+import { generateId, throttle } from 'helpers/common';
 
 import SVGManipulator from 'svg-manipulator';
 import DOMManipulator from 'dom-manipulator';
@@ -38,10 +39,14 @@ class Chart {
     this._endDate = null;
 
     this._data = data;
+    this._data.id = generateId();
 
     this._svgManipulator = new SVGManipulator();
     this._domManipulator = new DOMManipulator();
     this._identificators = new SvgIdentificators();
+
+    this.onSelectorUpdateThrottle = throttle(this.onSelectorUpdate, 30);
+    this.onSelectedChangedThrottle = throttle(this.onSelectedChanged, 100);
 
     this._minimap = new MiniMap(
       this.miniMapGroup(),
@@ -59,7 +64,7 @@ class Chart {
       this._wrapperElement,
       this._data.names,
       this._data.colors,
-      this.onSelectedChanged,
+      this.onSelectedChangedThrottle,
     );
 
     this.addSvg();
@@ -67,13 +72,13 @@ class Chart {
 
     this._minimapSelector = new MiniMapSelector(
       this._wrap,
-      this.onSelectorUpdate,
+      this.onSelectorUpdateThrottle,
     );
 
     this._legend = new LabelsGroup(
       this.labelsGroup(),
       this._data,
-      width,
+      width - yAxisWidth,
     );
 
     this._lines = new LinesGroup(
@@ -85,6 +90,8 @@ class Chart {
       this._startDate,
       this._endDate,
     );
+    this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
+    this.renderLegendThrottle = throttle(this._legend.renderLegend, 500);
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {
@@ -95,7 +102,6 @@ class Chart {
 
     this._lines.updateVisible(visibleList);
     this._lines.renderNewLines();
-    this._lines.animateLines();
   }
 
   onSelectorUpdate = (start, end) => {
@@ -105,7 +111,12 @@ class Chart {
     this._endDate = findAxisValue(axisColumn, end);
 
     this._chartsGroup.updateArea(this._startDate, this._endDate);
-    this._chartsGroup.render();
+
+    this._lines.updateArea(this._startDate, this._endDate);
+    this.renderNewLinesThrottle();
+
+    this._legend.updateArea(this._startDate, this._endDate);
+    this.renderLegendThrottle();
   }
 
   miniMapGroup() {
@@ -122,10 +133,15 @@ class Chart {
 
   chartsGroup() {
     return this._svgManipulator.createElement(
-      'g',
+      'svg',
       this._identificators.chartsGroup,
       {
-        styles: { transform: `translate(${yAxisWidth}px, ${chartTopPaddingHeight}px)` },
+        attributes: {
+          x: yAxisWidth,
+          y: chartTopPaddingHeight,
+          width: width - yAxisWidth,
+          height: chartHeight - chartTopPaddingHeight,
+        },
       },
     );
   }
@@ -135,7 +151,9 @@ class Chart {
       'g',
       this._identificators.labelsGroup,
       {
-        styles: { transform: `translateY(${chartHeight + legendHeight}px)` },
+        styles: {
+          transform: `translate(${yAxisWidth}px, ${chartHeight + legendHeight}px)`,
+        },
       },
     );
   }

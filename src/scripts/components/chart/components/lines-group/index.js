@@ -119,7 +119,14 @@ class LinesGroup {
     return result;
   }
 
-  renderNewLines() {
+  updateArea(startDate, endDate) {
+    this._startDate = startDate;
+    this._endDate = endDate;
+  }
+
+  renderNewLines = () => {
+    this.removeOldLines();
+
     const data = calculateData(this._data, this._startDate, this._endDate);
     const { diff, scale } = this.getLinesData(data);
 
@@ -128,17 +135,29 @@ class LinesGroup {
 
     for (let i = 0, j = 0; i < linesCount; i += 1, j += diff) {
       if (!this._lines.includes(j)) {
-        result.push(this.renderLine(j, this._scale));
+        if (!this._newLines.includes(j)) {
+          result.push(this.renderLine(j, this._scale, true));
+        }
       } else {
         const pos = this._lines.indexOf(j);
         this._lines.splice(pos, 1);
       }
 
-      this._newLines.push(j);
+      if (!this._newLines.includes(j)) {
+        this._newLines.push(j);
+      }
+    }
+
+    if (!this._lines.length && this._scale === this._newScale) {
+      this._lines = this._newLines;
+      this._newLines = [];
+      return;
     }
 
     const group = this._svgManipulator.getElementById(this._identificators.group);
     appendChild(group, result);
+
+    this.animateLines();
   }
 
   animateLines() {
@@ -151,21 +170,28 @@ class LinesGroup {
         this.renderLine(value, this._newScale);
       });
 
-      this.removeOldLines();
+      this.removeOldLinesTimeout();
     });
   }
 
-  removeOldLines() {
-    setTimeout(() => {
-      this._scale = this._newScale;
+  removeOldLinesTimeout() {
+    setTimeout(() => this.removeOldLines, animationTime);
+  }
 
-      this._lines.forEach((value) => {
-        this._svgManipulator.deleteElement(this._identificators.lineGroup(value));
-      });
+  removeOldLines = () => {
+    if (this._newScale) {
+      this._scale = this._newScale;
+      this._newScale = null;
+    }
+
+    if (this._newLines.length) {
+      // this._lines.forEach((value) => {
+      //   this._svgManipulator.deleteElement(this._identificators.lineGroup(value));
+      // });
 
       this._lines = this._newLines;
       this._newLines = [];
-    }, animationTime);
+    }
   }
 
   render() {

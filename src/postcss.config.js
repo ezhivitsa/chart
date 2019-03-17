@@ -9,7 +9,7 @@ const cssnano = require('cssnano');
 module.exports = {
   plugins: [
     postcssImport({
-      root: path.resolve(__dirname, './src/scripts'),
+      root: path.resolve(__dirname, './scripts'),
       path: ['styles'],
     }),
     postcssNested,

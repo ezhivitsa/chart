@@ -5,6 +5,7 @@ module.exports = {
       "devDependencies": [
         "**/webpack.config.js",
         "**/webpack.*.config.js",
+        "**/postcss.config.js",
       ],
     }],
   },

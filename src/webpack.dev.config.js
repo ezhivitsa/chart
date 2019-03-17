@@ -19,7 +19,7 @@ module.exports = {
     filename: '[name].js',
   },
 
-  context: path.resolve(__dirname, './src'),
+  context: __dirname,
 
   node: {
     fs: 'empty',
@@ -56,14 +56,14 @@ module.exports = {
   devtool: 'eval',
 
   resolve: {
-    modules: ['./src/scripts', 'node_modules'],
+    modules: ['./scripts', 'node_modules'],
     extensions: ['.js'],
   },
 
   plugins: [
     new webpack.NoEmitOnErrorsPlugin(),
     new HtmlWebpackPlugin({
-      template: path.join(__dirname, './src/index.html'),
+      template: path.join(__dirname, './views/index.html'),
       filename: 'index.html',
       inject: 'body',
     }),

@@ -7,13 +7,21 @@ import { getAxisColumn } from 'components/chart/utils';
 import SVGManipulator from 'svg-manipulator';
 import SvgIdentificators from './identificators';
 
+import styles from './styles.pcss';
+
 const maxLabelsAllowed = 6;
 
 class LabelsGroup {
   constructor(parent, data, width) {
     this._parent = parent;
     this._data = data;
+
     this._width = width;
+    this._chartWidth = width;
+    this._chartStart = 0;
+
+    this._startDate = null;
+    this._endDate = null;
 
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
@@ -21,17 +29,41 @@ class LabelsGroup {
 
   getShowLabels() {
     const column = getAxisColumn(this._data);
-    const labels = column.slice(1);
+    const labels = column.slice(1).filter((value) => {
+      let addValue = true;
+      if (this._startDate) {
+        addValue = this._startDate <= value;
+      }
+
+      if (this._endDate) {
+        addValue = addValue && this._endDate >= value;
+      }
+
+      return addValue;
+    });
 
     return getValuesFromArray(labels, maxLabelsAllowed);
   }
 
-  renderLegend() {
+  updateArea(start, end) {
+    this._startDate = start;
+    this._endDate = end;
+
+    const axisColumn = getAxisColumn(this._data).slice(1);
+
+    const [first] = axisColumn;
+    const last = axisColumn[axisColumn.length - 1];
+
+    this._chartWidth = this._width * (last - first) / (end - start);
+    this._chartStart = this._chartWidth * (start - first) / (last - first);
+  }
+
+  renderLegend = () => {
     const column = getAxisColumn(this._data);
     const showLabels = this.getShowLabels();
 
-    const labelLen = (this._width - 45) / (column.length - 1);
-    const showLabelLen = (this._width - 45) / (showLabels.length - 2);
+    const labelLen = (this._chartWidth - 45) / (column.length - 2);
+    const showLabelLen = (this._width - 45) / (showLabels.length - 1);
 
     return column.slice(1).map((c, index) => {
       const dateTime = new Date(c);
@@ -39,15 +71,22 @@ class LabelsGroup {
 
       const position = showLabels.indexOf(c);
 
+      const translate = position !== -1
+        ? position * showLabelLen
+        : index * labelLen - this._chartStart;
       return this._svgManipulator.createElement(
         'text',
         this._identificators.legend(dateTimeString),
         {
-          attributes:{
-            x: position !== -1 ? position * showLabelLen : (index - 1) * labelLen,
+          attributes: {
+            x: 0,
             y: 0,
           },
-          styles: { opacity: position !== -1 ? 1 : 0 },
+          styles: {
+            opacity: position !== -1 ? 1 : 0,
+            transform: `translateX(${translate}px)`,
+          },
+          className: styles.text,
         },
         dateTimeString,
       );

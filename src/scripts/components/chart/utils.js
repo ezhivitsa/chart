@@ -1,7 +1,7 @@
 import { types } from 'constants';
 import { memo } from 'helpers/common';
 
-const minLineDelta = 1;
+const minLineDelta = 5;
 const linesCount = 5;
 
 export const getAxisColumn = memo((data) => {
@@ -102,7 +102,7 @@ export const calculateMaxValue = (columns, visibleList) => {
   for (let i = 0; i < columns.length; i += 1) {
     const column = columns[i];
 
-    if (visibleList.includes(column[0])) {
+    if (!visibleList.length || visibleList.includes(column[0])) {
       const values = column.slice(1);
       const max = Math.max(...values);
       maxValue = Math.max(maxValue, max);
@@ -116,7 +116,7 @@ export const calculateMaxValue = (columns, visibleList) => {
   if (maxValue - maxChartValue >= tens / 2) {
     maxChartValue += tens;
   }
-  maxChartValue = Math.max(maxChartValue, minLineDelta * linesCount);
+  maxChartValue = Math.max(maxChartValue, minLineDelta * (linesCount - 1));
 
   return maxChartValue;
 };

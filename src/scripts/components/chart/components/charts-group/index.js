@@ -5,6 +5,7 @@ import {
   getChartColumns,
   createChartPath,
   calculateMaxValue,
+  calculateData,
 } from 'components/chart/utils';
 
 import SVGManipulator from 'svg-manipulator';
@@ -19,15 +20,22 @@ class ChartsGroup {
     this._width = width;
     this._height = height;
 
+    this._maxValue = 0;
+
     this._chartWidth = width;
     this._chartStart = 0;
     this._visibleList = Object.keys(data.names);
+
+    this._start = null;
+
+    this._startDate = null;
+    this._endDate = null;
 
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
   }
 
-  renderChart(columnName, axis, column, maxValue) {
+  renderChart(columnName, axis, column, maxValue, noAnimation) {
     const path = createChartPath(
       axis,
       column,
@@ -44,7 +52,10 @@ class ChartsGroup {
       this._identificators.path(columnName),
       {
         attributes: { d: path },
-        styles: { stroke: color },
+        styles: {
+          stroke: color,
+          ...(noAnimation ? { transition: 'none' } : {}),
+        },
         className: styles.path,
       },
     );
@@ -53,6 +64,9 @@ class ChartsGroup {
   }
 
   updateArea(start, end) {
+    this._startDate = start;
+    this._endDate = end;
+
     const axisColumn = getAxisColumn(this._data).slice(1);
 
     const [first] = axisColumn;
@@ -65,16 +79,14 @@ class ChartsGroup {
     this._chartWidth = this._width * (last - first) / (end - start);
     this._chartStart = this._chartWidth * (start - first) / (last - first);
 
-    this._visibleList.forEach((key) => {
-      this._svgManipulator.updateElement(
-        this._identificators.path(key),
-        {
-          styles: {
-            transition: 'none',
-          },
-        },
-      );
-    });
+    requestAnimationFrame(this.startVerticalAnimation);
+
+    this._svgManipulator.updateElement(
+      this._identificators.chartsGroup,
+      {
+        styles: { transform: `translateX(-${this._chartStart}px)` },
+      },
+    );
   }
 
   updateVisible(visibleList, hiddenList) {
@@ -93,18 +105,63 @@ class ChartsGroup {
     });
   }
 
-  render() {
-    const columns = getChartColumns(this._data);
+  startVerticalAnimation = (timestamp) => {
+    if (!this._start) {
+      this._start = timestamp;
+    }
+
+    const progress = Math.floor(timestamp - this._start);
+
     const axisColumn = getAxisColumn(this._data).slice(1);
+    const originalColumns = getChartColumns(this._data);
 
-    const maxValue = calculateMaxValue(columns, this._visibleList);
+    const data = calculateData(this._data, this._startDate, this._endDate);
+    const columns = getChartColumns(data);
+    this._newMaxValue = calculateMaxValue(columns, this._visibleList);
 
-    const paths = columns.map((column, index) => {
-      return this.renderChart(
+    let maxValue = this._maxValue;
+    if (this._newMaxValue !== maxValue) {
+      const sign = this._newMaxValue > maxValue ? 1 : -1;
+
+      maxValue += Math.min(
+        Math.abs(this._newMaxValue - maxValue),
+        progress,
+      ) * sign;
+    }
+
+    originalColumns.forEach((column, index) => {
+      this.renderChart(
         column[0],
         axisColumn,
         column.slice(1),
         maxValue,
+        true,
+      );
+    });
+
+    if (this._newMaxValue !== maxValue) {
+      requestAnimationFrame(this.startVerticalAnimation);
+    } else {
+      this._start = null;
+      this._maxValue = maxValue;
+    }
+  }
+
+  render() {
+    const data = calculateData(this._data, this._startDate, this._endDate);
+
+    const originalColumns = getChartColumns(this._data);
+    const axisColumn = getAxisColumn(this._data).slice(1);
+
+    const columns = getChartColumns(data);
+    this._maxValue = calculateMaxValue(columns, this._visibleList);
+
+    const paths = originalColumns.map((column, index) => {
+      return this.renderChart(
+        column[0],
+        axisColumn,
+        column.slice(1),
+        this._maxValue,
       );
     });
 
