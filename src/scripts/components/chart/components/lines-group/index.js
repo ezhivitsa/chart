@@ -42,8 +42,7 @@ class LinesGroup {
   }
 
   getLinesData(data) {
-    const columns = getChartColumns(data);
-    const maxChartValue = calculateMaxValue(columns, this._visibleList);
+    const maxChartValue = calculateMaxValue(data, this._visibleList);
 
     const diff = maxChartValue / (linesCount - 1);
     const scale = (this._height - 20) / maxChartValue;

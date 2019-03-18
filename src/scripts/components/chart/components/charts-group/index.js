@@ -116,8 +116,7 @@ class ChartsGroup {
     const originalColumns = getChartColumns(this._data);
 
     const data = calculateData(this._data, this._startDate, this._endDate);
-    const columns = getChartColumns(data);
-    this._newMaxValue = calculateMaxValue(columns, this._visibleList);
+    this._newMaxValue = calculateMaxValue(data, this._visibleList);
 
     let maxValue = this._maxValue;
     if (this._newMaxValue !== maxValue) {
@@ -153,8 +152,7 @@ class ChartsGroup {
     const originalColumns = getChartColumns(this._data);
     const axisColumn = getAxisColumn(this._data).slice(1);
 
-    const columns = getChartColumns(data);
-    this._maxValue = calculateMaxValue(columns, this._visibleList);
+    this._maxValue = calculateMaxValue(data, this._visibleList);
 
     const paths = originalColumns.map((column, index) => {
       return this.renderChart(

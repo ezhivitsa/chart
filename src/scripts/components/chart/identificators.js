@@ -17,6 +17,10 @@ class SvgIdentificators extends Identificators {
     return this._nameWithId('charts-group');
   }
 
+  get chartsGroupWrap() {
+    return this._nameWithId('charts-group-wrap');
+  }
+
   get labelsGroup() {
     return this._nameWithId('labels-group');
   }
@@ -28,14 +32,6 @@ class SvgIdentificators extends Identificators {
   get wrap() {
     return this._nameWithId('wrap');
   }
-
-  get rect() {
-    return this._nameWithId('rect');
-  }
-
-  pathDef = columnName => this._nameWithId(`path-def-${columnName}`);
-
-  pathMiniMap = columnName => this._nameWithId(`path-minimap-${columnName}`);
 }
 
 export default SvgIdentificators;

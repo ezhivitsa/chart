@@ -1,5 +1,5 @@
 import { types } from 'constants';
-import { memo } from 'helpers/common';
+import { memo, limitedMemo } from 'helpers/common';
 
 const minLineDelta = 5;
 const linesCount = 5;
@@ -23,7 +23,7 @@ export const getChartColumns = memo((data) => {
   return data.columns.filter(c => lines.includes(c[0]));
 });
 
-export const calculateData = (data, startDate, endDate) => {
+export const calculateData = limitedMemo((data, startDate, endDate) => {
   if (!startDate && !endDate) {
     return data;
   }
@@ -57,10 +57,19 @@ export const calculateData = (data, startDate, endDate) => {
     result.columns.push(column);
   }
 
-  return result;
-};
+  result.id = `${data.id}-${indexes[1]}-${indexes[indexes.length - 1]}`;
 
-export const createChartPath = (axis, column, maxValue, minValue, width, height) => {
+  return result;
+}, 10);
+
+export const createChartPath = limitedMemo((
+  axis,
+  column,
+  maxValue,
+  minValue,
+  width,
+  height
+) => {
   const [firstValue] = axis;
   const lastValue = axis[axis.length - 1] - firstValue;
 
@@ -72,7 +81,7 @@ export const createChartPath = (axis, column, maxValue, minValue, width, height)
   }
 
   return path;
-};
+}, 10);
 
 export const findAxisValue = (axis, relativeValue) => {
   const [firstValue] = axis; // 0
@@ -97,7 +106,9 @@ export const findAxisValue = (axis, relativeValue) => {
   return approximateValue;
 };
 
-export const calculateMaxValue = (columns, visibleList) => {
+export const calculateMaxValue = limitedMemo((data, visibleList) => {
+  const columns = getChartColumns(data);
+
   let maxValue = 0;
   for (let i = 0; i < columns.length; i += 1) {
     const column = columns[i];
@@ -119,4 +130,4 @@ export const calculateMaxValue = (columns, visibleList) => {
   maxChartValue = Math.max(maxChartValue, minLineDelta * (linesCount - 1));
 
   return maxChartValue;
-};
+}, 10);

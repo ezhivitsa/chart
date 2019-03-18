@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "webpack-dev-server --inline --hot --port 3000 --config src/webpack.dev.config.js --content-base build --progress --colors"
+    "dev": "webpack-dev-server --inline --hot --port 3000 --config src/webpack.dev.config.js --content-base build --progress --colors",
+    "build": "webpack -p --config src/webpack.config.js",
+    "prestart": "npm run build",
+    "start": "static src/static -a 192.168.1.4"
   },
   "author": "Evgeny Zhivitsa",
   "license": "GPL-3.0",
@@ -19,6 +22,7 @@
     "@babel/preset-env": "7.3.4",
     "babel-eslint": "10.0.1",
     "babel-loader": "8.0.5",
+    "babel-plugin-react-css-modules": "5.2.1",
     "css-loader": "2.1.1",
     "cssnano": "4.1.10",
     "eslint": "5.15.2",
@@ -26,6 +30,8 @@
     "eslint-plugin-jsx-a11y": "6.2.1",
     "eslint-plugin-react": "7.12.4",
     "html-webpack-plugin": "3.2.0",
+    "incstr": "1.2.3",
+    "mini-css-extract-plugin": "0.5.0",
     "normalize.css": "8.0.1",
     "postcss-import": "12.0.1",
     "postcss-loader": "3.0.0",
@@ -35,5 +41,8 @@
     "webpack": "4.29.6",
     "webpack-cli": "3.3.0",
     "webpack-dev-server": "3.2.1"
+  },
+  "dependencies": {
+    "node-static": "0.7.11"
   }
 }

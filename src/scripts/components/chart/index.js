@@ -10,6 +10,7 @@ import MiniMap from './components/minimap';
 import ChartsGroup from './components/charts-group';
 import LabelsGroup from './components/labels-group';
 import LinesGroup from './components/lines-group';
+import Tooltip from './components/tooltip';
 
 import {
   getAxisColumn,
@@ -50,6 +51,9 @@ class Chart {
     this.onSelectorUpdateThrottle = throttle(this.onSelectorUpdate, 30);
     this.onSelectedChangedThrottle = throttle(this.onSelectedChanged, 100);
 
+    this.addSvg();
+    this.addDefs();
+
     this._minimap = new MiniMap(
       this.miniMapGroup(),
       this._data,
@@ -68,9 +72,6 @@ class Chart {
       this._data.colors,
       this.onSelectedChangedThrottle,
     );
-
-    this.addSvg();
-    this.addDefs();
 
     this._minimapSelector = new MiniMapSelector(
       this._wrap,
@@ -92,6 +93,16 @@ class Chart {
       this._startDate,
       this._endDate,
     );
+
+    this._tooltip = new Tooltip(
+      this.chartsGroup(),
+      this._data,
+      width - yAxisWidth,
+      chartHeight,
+      this._startDate,
+      this._endDate,
+    );
+
     this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
     this.renderLegendThrottle = throttle(this._legend.renderLegend, 500);
   }
@@ -104,6 +115,8 @@ class Chart {
 
     this._lines.updateVisible(visibleList);
     this._lines.renderNewLines();
+
+    this._tooltip.updateVisible(visibleList);
   }
 
   onSelectorUpdate = (start, end) => {
@@ -119,6 +132,8 @@ class Chart {
 
     this._legend.updateArea(this._startDate, this._endDate);
     this.renderLegendThrottle();
+
+    this._tooltip.updateArea(this._startDate, this._endDate);
   }
 
   miniMapGroup() {
@@ -134,18 +149,30 @@ class Chart {
   }
 
   chartsGroup() {
-    return this._svgManipulator.createElement(
+    const group = this._svgManipulator.createElement(
+      'g',
+      this._identificators.chartsGroupWrap,
+      {
+        styles: { transform: `translateY(${chartTopPaddingHeight}px)` },
+      },
+    );
+
+    const svg = this._svgManipulator.createElement(
       'svg',
       this._identificators.chartsGroup,
       {
         attributes: {
           x: yAxisWidth,
-          y: chartTopPaddingHeight,
           width: width - yAxisWidth,
-          height: chartHeight - chartTopPaddingHeight,
+          height: chartHeight,
         },
       },
+      group,
     );
+
+    appendChild(this._svgElement, svg);
+
+    return group;
   }
 
   labelsGroup() {
@@ -202,7 +229,6 @@ class Chart {
   renderGroups() {
     appendChild(this._svgElement, [
       this.linesGroup(),
-      this.chartsGroup(),
       this.labelsGroup(),
       this.miniMapGroup(),
     ]);
@@ -221,6 +247,7 @@ class Chart {
     this._minimapSelector.render();
     this._buttons.render();
     this._lines.render();
+    this._tooltip.render();
   }
 }
 

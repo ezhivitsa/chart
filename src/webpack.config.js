@@ -52,22 +52,30 @@ module.exports = {
   mode: 'production',
 
   entry: {
-    main: ['@babel/polyfill', './index.jsx'],
+    main: [
+      '@babel/polyfill',
+      './scripts/index.js',
+    ],
   },
 
   output: {
     path: `${__dirname}/static/`,
-    publicPath: '/static/',
+    publicPath: '/',
     filename: 'main.[hash].js',
-    chunkFilename: 'main.[id].[hash].js',
   },
 
   context: path.resolve(__dirname, './'),
 
+  node: {
+    fs: 'empty',
+    net: 'empty',
+    constants: false,
+  },
+
   module: {
     rules: [
       {
-        test: /\.jsx?$/,
+        test: /\.js$/,
         exclude: /node_modules/,
         loader: 'babel-loader',
         options: {
@@ -104,18 +112,14 @@ module.exports = {
           },
         ],
       },
-      {
-        test: /\.(png|jpe?g|gif|woff|woff2|ttf|eot|ico)?(\?v=[0-9]\.[0-9]\.[0-9])?$/,
-        use: ['url-loader?limit=5000&name=[name].[hash].[ext]?'],
-      },
     ],
   },
 
   devtool: 'source-map',
 
   resolve: {
-    modules: ['./', 'node_modules'],
-    extensions: ['.mjs', '.js', '.jsx', '.pcss'],
+    modules: ['./scripts', 'node_modules'],
+    extensions: ['.mjs', '.js'],
   },
 
   optimization: {
