@@ -110,7 +110,7 @@ class ChartsGroup {
       this._start = timestamp;
     }
 
-    const progress = Math.floor(timestamp - this._start);
+    const progress = Math.floor((timestamp - this._start) / 2);
 
     const axisColumn = getAxisColumn(this._data).slice(1);
     const originalColumns = getChartColumns(this._data);

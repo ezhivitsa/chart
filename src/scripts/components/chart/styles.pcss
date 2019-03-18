@@ -1,4 +1,4 @@
-.wrapSvg {
+.wrap-svg {
   path {
     fill: transparent;
     stroke-width: 2;
@@ -14,4 +14,10 @@
 
 .wrap {
   position: relative;
+}
+
+:global(.night-mode) {
+  .wrap-svg .lines use {
+    opacity: 0.5;
+  }
 }

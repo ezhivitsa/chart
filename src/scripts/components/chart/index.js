@@ -31,7 +31,7 @@ const chartTopPaddingHeight = 20;
 const yAxisWidth = 50;
 
 class Chart {
-  constructor(el, data, lines) {
+  constructor(el, data, lines, nightMode) {
     this._wrapperElement = el;
     this._linesCount = lines;
 
@@ -40,6 +40,8 @@ class Chart {
 
     this._data = data;
     this._data.id = generateId();
+
+    this._nightMode = nightMode;
 
     this._svgManipulator = new SVGManipulator();
     this._domManipulator = new DOMManipulator();
@@ -159,9 +161,10 @@ class Chart {
   }
 
   linesGroup() {
-    return this._svgManipulator.getElement(
+    return this._svgManipulator.createElement(
       'g',
       this._identificators.linesGroup,
+      { className: styles.lines },
     );
   }
 
@@ -203,6 +206,10 @@ class Chart {
       this.labelsGroup(),
       this.miniMapGroup(),
     ]);
+  }
+
+  setNightMode(on) {
+    this._nightMode = on;
   }
 
   render() {

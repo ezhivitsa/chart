@@ -16,22 +16,30 @@ class Toggle {
     this._identificators = new DOMIdentificators();
   }
 
-  onTogglrClick = () => {}
+  onToggleClick = () => {
+    const toggle = this._domManipulator.getElementById(this._identificators.toggle);
+    const isOn = toggle.classList.contains(styles.on);
+    if (isOn) {
+      toggle.classList.remove(styles.on);
+    } else {
+      toggle.classList.add(styles.on);
+    }
+
+    this._onChange(!isOn);
+  }
 
   renderToggle() {
     const indicator = this._domManipulator.createElement(
       'span',
       this._identificators.idicator,
-      {
-        className: [styles.indicator, this._on ? styles.on : ''],
-      },
+      { className: styles.indicator },
     );
 
     return this._domManipulator.createElement(
       'div',
       this._identificators.toggle,
       {
-        className: styles.toggle,
+        className: [styles.toggle, this._on ? styles.on : ''],
         onClick: this.onToggleClick,
       },
       indicator,
