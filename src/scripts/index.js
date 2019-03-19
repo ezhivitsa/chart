@@ -1,8 +1,6 @@
 import Toggle from './components/ui/toggle';
 import Chart from './components/chart';
 
-import chartsData from './data/chart_data.json';
-
 import './styles.pcss';
 
 const element = document.querySelector('.chart');
@@ -11,7 +9,9 @@ const nightMode = document.querySelector('.night-mode-container');
 const nightModeItem = 'night-mode';
 const nightModeClass = 'night-mode';
 
-const initializeCharts = () => {
+const initializeCharts = async () => {
+  const { default: chartsData } = await import('data/chart_data.json');
+
   for (let i = 0; i < chartsData.length; i += 1) {
     const div = document.createElement('div');
     element.appendChild(div);
@@ -22,11 +22,13 @@ const initializeCharts = () => {
 };
 
 const onToggleChange = (on) => {
-  if (on) {
-    document.body.classList.add(nightModeClass);
-  } else {
-    document.body.classList.remove(nightModeClass);
-  }
+  setTimeout(() => {
+    if (on) {
+      document.body.classList.add(nightModeClass);
+    } else {
+      document.body.classList.remove(nightModeClass);
+    }
+  }, 300);
 
   if (window.localStorage) {
     localStorage.setItem(nightModeItem, JSON.stringify(on));

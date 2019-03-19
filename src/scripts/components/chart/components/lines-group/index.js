@@ -1,7 +1,6 @@
 import { appendChild } from 'helpers/dom';
 
 import {
-  getChartColumns,
   calculateData,
   calculateMaxValue,
 } from 'components/chart/utils';
@@ -41,8 +40,13 @@ class LinesGroup {
     this._visibleList = visibleList;
   }
 
-  getLinesData(data) {
-    const maxChartValue = calculateMaxValue(data, this._visibleList);
+  getLinesData() {
+    const maxChartValue = calculateMaxValue(
+      this._data,
+      this._startDate,
+      this._endDate,
+      this._visibleList,
+    );
 
     const diff = maxChartValue / (linesCount - 1);
     const scale = (this._height - 20) / maxChartValue;
@@ -126,8 +130,7 @@ class LinesGroup {
   renderNewLines = () => {
     this.removeOldLines();
 
-    const data = calculateData(this._data, this._startDate, this._endDate);
-    const { diff, scale } = this.getLinesData(data);
+    const { diff, scale } = this.getLinesData();
 
     const result = [];
     this._newScale = scale;
@@ -194,8 +197,7 @@ class LinesGroup {
   }
 
   render() {
-    const data = calculateData(this._data, this._startDate, this._endDate);
-    const linesData = this.getLinesData(data);
+    const linesData = this.getLinesData();
     this._scale = linesData.scale;
 
     const group = this._svgManipulator.createElement(

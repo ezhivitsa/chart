@@ -95,7 +95,7 @@ class Chart {
     );
 
     this._tooltip = new Tooltip(
-      this.chartsGroup(),
+      this._wrap,
       this._data,
       width - yAxisWidth,
       chartHeight,
@@ -104,7 +104,7 @@ class Chart {
     );
 
     this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
-    this.renderLegendThrottle = throttle(this._legend.renderLegend, 500);
+    this.renderLegendThrottle = throttle(this._legend.renderLegend, 300);
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {

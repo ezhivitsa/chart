@@ -5,7 +5,6 @@ import {
   getChartColumns,
   createChartPath,
   calculateMaxValue,
-  calculateData,
 } from 'components/chart/utils';
 
 import SVGManipulator from 'svg-manipulator';
@@ -115,8 +114,12 @@ class ChartsGroup {
     const axisColumn = getAxisColumn(this._data).slice(1);
     const originalColumns = getChartColumns(this._data);
 
-    const data = calculateData(this._data, this._startDate, this._endDate);
-    this._newMaxValue = calculateMaxValue(data, this._visibleList);
+    this._newMaxValue = calculateMaxValue(
+      this._data,
+      this._startDate,
+      this._endDate,
+      this._visibleList,
+    );
 
     let maxValue = this._maxValue;
     if (this._newMaxValue !== maxValue) {
@@ -147,12 +150,15 @@ class ChartsGroup {
   }
 
   render() {
-    const data = calculateData(this._data, this._startDate, this._endDate);
-
     const originalColumns = getChartColumns(this._data);
     const axisColumn = getAxisColumn(this._data).slice(1);
 
-    this._maxValue = calculateMaxValue(data, this._visibleList);
+    this._maxValue = calculateMaxValue(
+      this._data,
+      this._startDate,
+      this._endDate,
+      this._visibleList,
+    );
 
     const paths = originalColumns.map((column, index) => {
       return this.renderChart(

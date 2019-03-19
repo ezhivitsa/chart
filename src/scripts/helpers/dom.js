@@ -1,4 +1,11 @@
-const provertiesInPx = ['width', 'height'];
+const provertiesInPx = [
+  'width',
+  'height',
+  'top',
+  'right',
+  'botton',
+  'left',
+];
 
 const appendElement = (parent, element) => {
   if (parent.contains(element)) {

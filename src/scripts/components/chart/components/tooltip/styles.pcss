@@ -1,5 +1,69 @@
+.wrap {
+  position: absolute;
+  top: 0;
+  left: 50px;
+}
+
 .line {
-  stroke-width: 2;
-  stroke: #ccc;
-  opacity: 0.8;
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #ccc;
+  opacity: 0.7;
+}
+
+.point {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  width: 8px;
+  height: 8px;
+  border-style: solid;
+  border-width: 3px;
+  background: #fff;
+  transform: translate(-6px, -6px);
+}
+
+.info {
+  position: absolute;
+  width: 100px;
+  background: #fff;
+  border-radius: 2px;
+  padding: 10px;
+  box-shadow: 0px 2px 10px 0px rgba(0,0,0,0.5);
+}
+
+.title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.list {
+  list-style-type: none;
+  padding: 0;
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+
+.item {
+  margin-top: 3px;
+}
+
+.big-text {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.small-text {
+  margin-left: 5px;
+  font-size: 13px;
+}
+
+:global(.night-mode) .point {
+  background: #242f3e;
+}
+
+:global(.night-mode) .info {
+  background: #242f3e;
 }

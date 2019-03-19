@@ -68,7 +68,7 @@ export const createChartPath = limitedMemo((
   maxValue,
   minValue,
   width,
-  height
+  height,
 ) => {
   const [firstValue] = axis;
   const lastValue = axis[axis.length - 1] - firstValue;
@@ -106,7 +106,8 @@ export const findAxisValue = (axis, relativeValue) => {
   return approximateValue;
 };
 
-export const calculateMaxValue = limitedMemo((data, visibleList) => {
+export const calculateMaxValue = limitedMemo((fullData, startDate, endDate, visibleList) => {
+  const data = calculateData(fullData, startDate, endDate);
   const columns = getChartColumns(data);
 
   let maxValue = 0;
