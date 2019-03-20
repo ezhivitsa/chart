@@ -59,7 +59,12 @@ class DOMManipulator {
   }
 
   createElement(type, identificator, options, children) {
-    const element = this.getElement(type, identificator);
+    this.getElement(type, identificator);
+    return this.updateElement(identificator, options, children);
+  }
+
+  updateElement(identificator, options, children) {
+    const element = this.getElementById(identificator);
 
     if (options.className instanceof Array) {
       const classNames = options.className.filter(c => !!c);
@@ -85,8 +90,8 @@ class DOMManipulator {
       });
     } else if (children instanceof Element) {
       appendChild(element, children);
-    } else if (typeof children === 'string') {
-      element.textContent = children;
+    } else if (typeof children === 'string' || typeof children === 'number') {
+      element.textContent = children.toString();
     }
 
     return element;

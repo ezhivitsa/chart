@@ -109,8 +109,6 @@ class ChartsGroup {
       this._start = timestamp;
     }
 
-    const progress = Math.floor((timestamp - this._start) / 2);
-
     const axisColumn = getAxisColumn(this._data).slice(1);
     const originalColumns = getChartColumns(this._data);
 
@@ -122,6 +120,8 @@ class ChartsGroup {
     );
 
     let maxValue = this._maxValue;
+    const progress = Math.abs(this._newMaxValue - this._maxValue) / 120 * (timestamp - this._start);
+
     if (this._newMaxValue !== maxValue) {
       const sign = this._newMaxValue > maxValue ? 1 : -1;
 

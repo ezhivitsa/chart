@@ -1,9 +1,6 @@
 import { appendChild } from 'helpers/dom';
 
-import {
-  calculateData,
-  calculateMaxValue,
-} from 'components/chart/utils';
+import { calculateMaxValue } from 'components/chart/utils';
 
 import SVGManipulator from 'svg-manipulator';
 import SvgIdentificators from './identificators';
@@ -91,7 +88,7 @@ class LinesGroup {
           y: this._height - 5,
         },
       },
-      value,
+      value > 10000 ? `${value / 1000}K` : value,
     );
 
     return this._svgManipulator.createElement(

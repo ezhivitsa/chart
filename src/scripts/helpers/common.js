@@ -52,8 +52,10 @@ export const limitedMemo = (func, storeValues) => {
     calls.push(key);
 
     if (calls.length > storeValues) {
-      const [deleteKey] = calls.splice(0, 1);
-      delete cache[deleteKey];
+      const deleteKeys = calls.splice(0, Math.floor(storeValues));
+      deleteKeys.forEach((key) => {
+        delete cache[key];
+      });
     }
 
     return val;

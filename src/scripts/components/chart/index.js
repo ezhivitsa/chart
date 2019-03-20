@@ -36,11 +36,12 @@ class Chart {
     this._wrapperElement = el;
     this._linesCount = lines;
 
-    this._startDate = null;
-    this._endDate = null;
-
     this._data = data;
     this._data.id = generateId();
+
+    const axisColumn = getAxisColumn(this._data).slice(1);
+    this._startDate = axisColumn[0]; // eslint-disable-line
+    this._endDate = axisColumn[axisColumn.length - 1];
 
     this._nightMode = nightMode;
 
@@ -99,6 +100,7 @@ class Chart {
       this._data,
       width - yAxisWidth,
       chartHeight,
+      chartTopPaddingHeight,
       this._startDate,
       this._endDate,
     );
