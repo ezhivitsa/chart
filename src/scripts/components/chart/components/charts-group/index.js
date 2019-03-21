@@ -13,7 +13,7 @@ import SvgIdentificators from './identificators';
 import styles from './styles.pcss';
 
 class ChartsGroup {
-  constructor(parent, data, width, height) {
+  constructor(parent, data, startDate, endDate, width, height) {
     this._parent = parent;
     this._data = data;
     this._width = width;
@@ -27,8 +27,8 @@ class ChartsGroup {
 
     this._start = null;
 
-    this._startDate = null;
-    this._endDate = null;
+    this._startDate = startDate;
+    this._endDate = endDate;
 
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
@@ -102,6 +102,11 @@ class ChartsGroup {
         },
       );
     });
+  }
+
+  updateWidth(width) {
+    this._width = width;
+    this.updateArea(this._startDate, this._endDate);
   }
 
   startVerticalAnimation = (timestamp) => {

@@ -10,7 +10,7 @@ const getArgKeys = (args) => {
 
     return a;
   });
-}
+};
 
 export const memo = (func) => {
   const cache = {};
@@ -53,8 +53,8 @@ export const limitedMemo = (func, storeValues) => {
 
     if (calls.length > storeValues) {
       const deleteKeys = calls.splice(0, Math.floor(storeValues));
-      deleteKeys.forEach((key) => {
-        delete cache[key];
+      deleteKeys.forEach((deleteKey) => {
+        delete cache[deleteKey];
       });
     }
 

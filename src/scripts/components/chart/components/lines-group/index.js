@@ -27,14 +27,20 @@ class LinesGroup {
     this._svgManipulator = new SVGManipulator();
 
     this._visibleList = Object.keys(data.names);
-    this._lines = [];
-    this._newLines = [];
+
+    this._actualLines = [];
+    this._linesToDelete = [];
 
     this.addLineDef();
   }
 
   updateVisible(visibleList) {
     this._visibleList = visibleList;
+  }
+
+  updateWidth(width) {
+    this._width = width;
+    this.addLineDef();
   }
 
   getLinesData() {
@@ -112,7 +118,7 @@ class LinesGroup {
     const result = [];
 
     for (let i = 0, j = 0; i < linesCount; i += 1, j += diff) {
-      this._lines.push(j);
+      this._actualLines.push(j);
       result.push(this.renderLine(j, scale));
     }
 
@@ -125,71 +131,75 @@ class LinesGroup {
   }
 
   renderNewLines = () => {
-    this.removeOldLines();
+    if (this._newScale) {
+      this._scale = this._newScale;
+    }
 
     const { diff, scale } = this.getLinesData();
 
-    const result = [];
     this._newScale = scale;
 
+    const newActualLines = [];
     for (let i = 0, j = 0; i < linesCount; i += 1, j += diff) {
-      if (!this._lines.includes(j)) {
-        if (!this._newLines.includes(j)) {
-          result.push(this.renderLine(j, this._scale, true));
-        }
-      } else {
-        const pos = this._lines.indexOf(j);
-        this._lines.splice(pos, 1);
-      }
+      newActualLines.push(j);
 
-      if (!this._newLines.includes(j)) {
-        this._newLines.push(j);
+      const pos = this._linesToDelete.indexOf(j);
+      if (pos !== -1) {
+        this._linesToDelete.splice(pos, 1);
       }
     }
 
-    if (!this._lines.length && this._scale === this._newScale) {
-      this._lines = this._newLines;
-      this._newLines = [];
-      return;
+    for (let i = 0; i < this._actualLines.length; i += 1) {
+      if (!newActualLines.includes(this._actualLines[i])) {
+        this._linesToDelete.push(this._actualLines[i]);
+      }
     }
+
+    this._actualLines = newActualLines;
+
+    const actualLinesEls = this._actualLines.map((line) => {
+      return this.renderLine(line, this._scale);
+    });
 
     const group = this._svgManipulator.getElementById(this._identificators.group);
-    appendChild(group, result);
+    appendChild(group, actualLinesEls);
 
     this.animateLines();
   }
 
   animateLines() {
     setTimeout(() => {
-      this._lines.forEach((value) => {
+      this._linesToDelete.forEach((value) => {
         this.renderLine(value, this._newScale, true);
       });
 
-      this._newLines.forEach((value) => {
+      this._actualLines.forEach((value) => {
         this.renderLine(value, this._newScale);
       });
+
+      this._scale = this._newScale;
+      this._newScale = null;
 
       this.removeOldLinesTimeout();
     });
   }
 
   removeOldLinesTimeout() {
-    setTimeout(() => this.removeOldLines, animationTime);
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+    }
+
+    this._timeout = setTimeout(this.removeOldLines, animationTime);
   }
 
   removeOldLines = () => {
-    if (this._newScale) {
-      this._scale = this._newScale;
-      this._newScale = null;
-    }
+    this._timeout = null;
 
-    if (this._newLines.length) {
-      // this._lines.forEach((value) => {
-      //   this._svgManipulator.deleteElement(this._identificators.lineGroup(value));
-      // });
-
-      this._lines = this._newLines;
-      this._newLines = [];
+    if (this._linesToDelete.length) {
+      this._linesToDelete.forEach((value) => {
+        this._svgManipulator.deleteElement(this._identificators.lineGroup(value));
+      });
+      this._linesToDelete = [];
     }
   }
 

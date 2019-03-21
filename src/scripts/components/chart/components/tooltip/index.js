@@ -69,6 +69,13 @@ class Tooltip {
     }
   }
 
+  updateWidth(width) {
+    this._width = width;
+
+    this.hideTooltip();
+    this.render();
+  }
+
   getAxisValueByPosition(x) {
     for (let i = 0; i < this._positions.length; i += 1) {
       const { value } = this._positions[i];
@@ -152,7 +159,6 @@ class Tooltip {
     this._startDate = startDate;
     this._endDate = endDate;
     this._positions = this.getPositions();
-    // console.log(this._positions)
   }
 
   getPositions() {

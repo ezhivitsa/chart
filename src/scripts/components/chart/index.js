@@ -21,7 +21,6 @@ import SvgIdentificators from './identificators';
 
 import styles from './styles.pcss';
 
-const width = 500;
 const height = 350;
 const chartHeight = 300;
 const miniMapHeight = 50;
@@ -32,7 +31,9 @@ const chartTopPaddingHeight = 20;
 const yAxisWidth = 50;
 
 class Chart {
-  constructor(el, data, lines, nightMode) {
+  constructor(el, data, lines, width = 500) {
+    this._width = width;
+
     this._wrapperElement = el;
     this._linesCount = lines;
 
@@ -42,8 +43,6 @@ class Chart {
     const axisColumn = getAxisColumn(this._data).slice(1);
     this._startDate = axisColumn[0]; // eslint-disable-line
     this._endDate = axisColumn[axisColumn.length - 1];
-
-    this._nightMode = nightMode;
 
     this._svgManipulator = new SVGManipulator();
     this._domManipulator = new DOMManipulator();
@@ -58,13 +57,15 @@ class Chart {
     this._minimap = new MiniMap(
       this.miniMapGroup(),
       this._data,
-      width,
+      this._width,
       miniMapHeight,
     );
     this._chartsGroup = new ChartsGroup(
       this.chartsGroup(),
       this._data,
-      width - yAxisWidth,
+      this._startDate,
+      this._endDate,
+      this._width - yAxisWidth,
       chartHeight - chartTopPaddingHeight,
     );
     this._buttons = new Buttons(
@@ -76,20 +77,23 @@ class Chart {
 
     this._minimapSelector = new MiniMapSelector(
       this._wrap,
+      this._width,
       this.onSelectorUpdateThrottle,
     );
 
     this._legend = new LabelsGroup(
       this.labelsGroup(),
       this._data,
-      width - yAxisWidth,
+      this._startDate,
+      this._endDate,
+      this._width - yAxisWidth,
     );
 
     this._lines = new LinesGroup(
       this.linesGroup(),
       this._defs,
       this._data,
-      width,
+      this._width,
       chartHeight,
       this._startDate,
       this._endDate,
@@ -98,7 +102,7 @@ class Chart {
     this._tooltip = new Tooltip(
       this._wrap,
       this._data,
-      width - yAxisWidth,
+      this._width - yAxisWidth,
       chartHeight,
       chartTopPaddingHeight,
       this._startDate,
@@ -106,7 +110,7 @@ class Chart {
     );
 
     this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
-    this.renderLegendThrottle = throttle(this._legend.renderLegend, 300);
+    this.renderLegendThrottle = throttle(this._legend.renderLegend, 100);
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {
@@ -138,6 +142,20 @@ class Chart {
     this._tooltip.updateArea(this._startDate, this._endDate);
   }
 
+  updateWidth(width) {
+    this._width = width;
+
+    this._chartsGroup.updateWidth(this._width - yAxisWidth);
+    this._legend.updateWidth(this._width - yAxisWidth);
+    this._minimap.updateWidth(width);
+    this._minimapSelector.updateWidth(width);
+    this._lines.updateWidth(width);
+    this._tooltip.updateWidth(this._width - yAxisWidth);
+
+    this.addSvg();
+    this.chartsGroup();
+  }
+
   miniMapGroup() {
     return this._svgManipulator.createElement(
       'g',
@@ -165,7 +183,7 @@ class Chart {
       {
         attributes: {
           x: yAxisWidth,
-          width: width - yAxisWidth,
+          width: this._width - yAxisWidth,
           height: chartHeight,
         },
       },
@@ -204,8 +222,8 @@ class Chart {
       {
         attributes: {
           height: height + miniMapHeight + miniMapPadding,
-          width,
-          viewBox: `0 0 ${width} ${height + miniMapHeight + miniMapPadding}`,
+          width: this._width,
+          viewBox: `0 0 ${this._width} ${height + miniMapHeight + miniMapPadding}`,
         },
         className: styles.wrapSvg,
       },
@@ -214,18 +232,18 @@ class Chart {
       'div',
       this._identificators.wrap,
       {
-        styles: { width },
+        styles: { width: this._width },
         className: styles.wrap,
       },
       this._svgElement,
     );
 
-    this._wrapperElement.append(this._wrap);
+    appendChild(this._wrapperElement, this._wrap);
   }
 
   addDefs() {
     this._defs = this._svgManipulator.getElement('defs', this._identificators.defs);
-    this._svgElement.append(this._defs);
+    appendChild(this._svgElement, this._defs);
   }
 
   renderGroups() {
@@ -234,10 +252,6 @@ class Chart {
       this.labelsGroup(),
       this.miniMapGroup(),
     ]);
-  }
-
-  setNightMode(on) {
-    this._nightMode = on;
   }
 
   render() {

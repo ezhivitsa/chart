@@ -14,7 +14,7 @@ const selectorTypes = {
 const minWidth = 50;
 
 class MiniMapSelector {
-  constructor(parent, onUpdate) {
+  constructor(parent, width, onUpdate) {
     this._parent = parent;
     this._onUpdate = onUpdate;
 
@@ -27,7 +27,7 @@ class MiniMapSelector {
 
     this._leftPosition = 0;
     this._rightPosition = 0;
-    this._width = 500;
+    this._width = width;
 
     this._mouseDownX = 0;
     this._mouseUpX = 0;
@@ -108,6 +108,15 @@ class MiniMapSelector {
       leftPosition / this._width,
       1 - rightPosition / this._width,
     );
+  }
+
+  updateWidth(width) {
+    this._leftPosition = this._leftPosition / this._width * width;
+    this._rightPosition = this._rightPosition / this._width * width;
+
+    this._width = width;
+
+    this.render();
   }
 
   renderSelector() {

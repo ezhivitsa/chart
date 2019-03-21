@@ -9,10 +9,8 @@ import SvgIdentificators from './identificators';
 
 import styles from './styles.pcss';
 
-const maxLabelsAllowed = 6;
-
 class LabelsGroup {
-  constructor(parent, data, width) {
+  constructor(parent, data, startDate, endDate, width) {
     this._parent = parent;
     this._data = data;
 
@@ -20,11 +18,17 @@ class LabelsGroup {
     this._chartWidth = width;
     this._chartStart = 0;
 
-    this._startDate = null;
-    this._endDate = null;
+    this._maxLabels = this.getMaxLabels();
+
+    this._startDate = startDate;
+    this._endDate = endDate;
 
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
+  }
+
+  getMaxLabels() {
+    return Math.max(Math.floor(this._width / 60), 3);
   }
 
   getShowLabels() {
@@ -42,7 +46,7 @@ class LabelsGroup {
       return addValue;
     });
 
-    return getValuesFromArray(labels, maxLabelsAllowed);
+    return getValuesFromArray(labels, this._maxLabels);
   }
 
   updateArea(start, end) {
@@ -56,6 +60,14 @@ class LabelsGroup {
 
     this._chartWidth = this._width * (last - first) / (end - start);
     this._chartStart = this._chartWidth * (start - first) / (last - first);
+  }
+
+  updateWidth(width) {
+    this._width = width;
+    this._maxLabels = this.getMaxLabels();
+
+    this.updateArea(this._startDate, this._endDate);
+    this.renderLegend();
   }
 
   renderLegend = () => {

@@ -21,6 +21,8 @@ class MiniMap {
     this._width = width;
     this._miniMapHeight = miniMapHeight;
 
+    this._visibleList = Object.keys(data.names);
+
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
   }
@@ -42,7 +44,10 @@ class MiniMap {
       this._identificators.path(columnName),
       {
         attributes: { d: path },
-        styles: { stroke: color },
+        styles: {
+          stroke: color,
+          opacity: this._visibleList.includes(columnName) ? 1 : 0,
+        },
         className: styles.path,
       },
     );
@@ -51,14 +56,21 @@ class MiniMap {
   }
 
   updateVisible(visibleList, hiddenList) {
-    Object.keys(this._data.names).forEach((key) => {
+    this._visibleList = visibleList;
+
+    hiddenList.forEach((key) => {
       this._svgManipulator.updateElement(
         this._identificators.path(key),
-        {
-          styles: { opacity: visibleList.includes(key) ? 1 : 0 },
-        },
+        { styles: { opacity: 0 } },
       );
     });
+
+    this.render();
+  }
+
+  updateWidth(width) {
+    this._width = width;
+    this.render();
   }
 
   render() {
@@ -68,24 +80,32 @@ class MiniMap {
     axisColumn = getValuesFromArray(axisColumn, maxMinimapPoints);
 
     let maxValue = 0;
-    let minValue = 0;
+    let minValue = Infinity;
 
     const dataColumns = [];
 
     for (let i = 0; i < columns.length; i += 1) {
-      const column = columns[i].slice(1);
-      const dataColumn = getValuesFromArray(column, maxMinimapPoints);
-      dataColumns.push(dataColumn);
+      if (
+        !this._visibleList.length ||
+        this._visibleList.includes(columns[i][0])
+      ) {
+        const column = columns[i].slice(1);
+        const dataColumn = getValuesFromArray(column, maxMinimapPoints);
+        dataColumns.push({
+          name: columns[i][0],
+          column: dataColumn,
+        });
 
-      maxValue = Math.max(maxValue, ...dataColumn);
-      minValue = Math.min(minValue, ...dataColumn);
+        maxValue = Math.max(maxValue, ...dataColumn);
+        minValue = Math.min(minValue, ...dataColumn);
+      }
     }
 
-    const paths = columns.map((column, index) => {
+    const paths = dataColumns.map((dataColumn) => {
       return this.renderMinimapChart(
-        column[0],
+        dataColumn.name,
         axisColumn,
-        dataColumns[index],
+        dataColumn.column,
         maxValue - minValue,
         minValue,
       );

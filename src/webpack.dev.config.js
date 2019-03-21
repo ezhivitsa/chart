@@ -63,6 +63,11 @@ module.exports = {
 
   plugins: [
     new webpack.NoEmitOnErrorsPlugin(),
+    new webpack.DefinePlugin({
+      'process.env': {
+        NODE_ENV: JSON.stringify('development'),
+      },
+    }),
     new HtmlWebpackPlugin({
       template: path.join(__dirname, './views/index.html'),
       filename: 'index.html',
