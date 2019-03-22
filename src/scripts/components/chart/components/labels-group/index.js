@@ -23,12 +23,15 @@ class LabelsGroup {
     this._startDate = startDate;
     this._endDate = endDate;
 
+    this._actualLabels = [];
+    this._labelsToDelete = [];
+
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
   }
 
   getMaxLabels() {
-    return Math.max(Math.floor(this._width / 60), 3);
+    return Math.max(Math.floor(this._chartWidth / 60), 3);
   }
 
   getShowLabels() {
@@ -70,22 +73,38 @@ class LabelsGroup {
     this.renderLegend();
   }
 
-  renderLegend = () => {
-    const column = getAxisColumn(this._data);
+  renderNewLegend = () => {
     const showLabels = this.getShowLabels();
 
-    const labelLen = (this._chartWidth - 45) / (column.length - 2);
-    const showLabelLen = (this._width - 45) / (showLabels.length - 1);
+    const newActualLabels = [];
+    for (let i = 0; i < showLabels.length; i += 1) {
+      newActualLabels.push(showLabels[i]);
 
-    return column.slice(1).map((c, index) => {
+      const pos = this._labelsToDelete.indexOf(showLabels[i]);
+      if (pos !== -1) {
+        this._labelsToDelete.splice(pos, 1);
+      }
+    }
+
+    for (let i = 0; i < this._actualLabels.length; i += 1) {
+      if (!newActualLabels.includes(this._actualLabels[i])) {
+        this._labelsToDelete.push(this._actualLabels[i]);
+      }
+    }
+
+    this._actualLabels = newActualLabels;
+  }
+
+  renderLegend = () => {
+    const showLabels = this.getShowLabels();
+    this._actualLabels = showLabels;
+    const showLabelLen = (this._chartWidth - 45) / (showLabels.length - 1);
+
+    return showLabels.map((c, index) => {
       const dateTime = new Date(c);
       const dateTimeString = dateToString(dateTime);
 
-      const position = showLabels.indexOf(c);
-
-      const translate = position !== -1
-        ? position * showLabelLen
-        : index * labelLen - this._chartStart;
+      const translate = index * showLabelLen;
       return this._svgManipulator.createElement(
         'text',
         this._identificators.legend(dateTimeString),
@@ -95,7 +114,7 @@ class LabelsGroup {
             y: 0,
           },
           styles: {
-            opacity: position !== -1 ? 1 : 0,
+            opacity: 1,
             transform: `translateX(${translate}px)`,
           },
           className: styles.text,
@@ -109,7 +128,11 @@ class LabelsGroup {
     const group = this._svgManipulator.createElement(
       'g',
       this._identificators.group,
-      {},
+      {
+        styles: {
+          transform: `translateX(-${this._chartStart}px)`,
+        },
+      },
       this.renderLegend(),
     );
 

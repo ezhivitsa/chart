@@ -39,13 +39,11 @@ const initializeCharts = async () => {
 };
 
 const onToggleChange = (on) => {
-  setTimeout(() => {
-    if (on) {
-      document.body.classList.add(nightModeClass);
-    } else {
-      document.body.classList.remove(nightModeClass);
-    }
-  }, 300);
+  if (on) {
+    document.body.classList.add(nightModeClass);
+  } else {
+    document.body.classList.remove(nightModeClass);
+  }
 
   if (window.localStorage) {
     localStorage.setItem(nightModeItem, JSON.stringify(on));

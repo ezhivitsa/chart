@@ -110,7 +110,7 @@ class Chart {
     );
 
     this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
-    this.renderLegendThrottle = throttle(this._legend.renderLegend, 100);
+    this.renderNewLegendThrottle = throttle(this._legend.renderNewLegend, 30);
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {
@@ -137,7 +137,7 @@ class Chart {
     this.renderNewLinesThrottle();
 
     this._legend.updateArea(this._startDate, this._endDate);
-    this.renderLegendThrottle();
+    this.renderNewLegendThrottle();
 
     this._tooltip.updateArea(this._startDate, this._endDate);
   }

@@ -1,8 +1,10 @@
 import { types } from 'constants';
-import { memo, limitedMemo } from 'helpers/common';
+import { memo, limitedMemo, getArgKey } from 'helpers/common';
 
 const minLineDelta = 5;
 const linesCount = 5;
+
+const maxValueCache = {};
 
 export const getAxisColumn = memo((data) => {
   const axis = Object.keys(data.types).find((key) => {
@@ -18,9 +20,11 @@ export const getChartColumnNames = memo((data) => {
   });
 });
 
-export const getChartColumns = memo((data) => {
+export const getChartColumns = memo((data, visibleList = []) => {
   const lines = getChartColumnNames(data);
-  return data.columns.filter(c => lines.includes(c[0]));
+  return data.columns.filter((c) => {
+    return lines.includes(c[0]) && (!visibleList.length || visibleList.includes(c[0]));
+  });
 });
 
 export const calculateData = limitedMemo((data, startDate, endDate) => {
@@ -106,7 +110,53 @@ export const findAxisValue = (axis, relativeValue) => {
   return approximateValue;
 };
 
-export const calculateMaxValue = limitedMemo((fullData, startDate, endDate, visibleList) => {
+const roundMaxValue = (maxValue) => {
+  const intPart = Math.min(10, Math.floor(maxValue.toString().length / 2));
+  const tens = 10 ** intPart;
+
+  let maxChartValue = maxValue - (maxValue % tens);
+  if (maxValue - maxChartValue >= tens / 2) {
+    maxChartValue += tens;
+  }
+  return Math.max(maxChartValue, minLineDelta * (linesCount - 1));
+}
+
+const getDataMaxValues = (data, visibleList) => {
+  const columns = getChartColumns(data, visibleList);
+  const axisColumn = getAxisColumn(data).slice(1);
+
+  const singleArray = [];
+
+  for (let i = 1; i < columns[0].length; i += 1) {
+    const values = columns.map(c => c[i]);
+    singleArray.push(Math.max(...values));
+  }
+
+  let spikes = [];
+  for (let i = 0; i < singleArray.length; i += 1) {
+    const prevValue = i !== 0 ? singleArray[i - 1] : 0;
+    const nextValue = i !== singleArray.length - 1 ? singleArray[i + 1] : 0;
+    const value = singleArray[i];
+
+    if (value >= prevValue && value >= nextValue) {
+      spikes.push({
+        x: axisColumn[i],
+        value,
+      });
+    }
+  }
+
+  spikes = spikes.sort((s1, s2) => s2.value - s1.value);
+  spikes = spikes.slice(0, 20);
+
+  spikes.forEach((s) => {
+    s.value = roundMaxValue(s.value); // eslint-disable-line
+  });
+
+  return spikes;
+};
+
+const maxValueFullCalculation = (fullData, startDate, endDate, visibleList) => {
   const data = calculateData(fullData, startDate, endDate);
   const columns = getChartColumns(data);
 
@@ -121,14 +171,32 @@ export const calculateMaxValue = limitedMemo((fullData, startDate, endDate, visi
     }
   }
 
-  const intPart = Math.min(10, Math.floor(maxValue.toString().length / 2));
-  const tens = 10 ** intPart;
+  return roundMaxValue(maxValue);
+};
 
-  let maxChartValue = maxValue - (maxValue % tens);
-  if (maxValue - maxChartValue >= tens / 2) {
-    maxChartValue += tens;
+export const calculateMaxValue = (fullData, startDate, endDate, visibleList) => {
+  const dataKey = JSON.stringify(getArgKey(fullData));
+  const key = `${dataKey}-${JSON.stringify(visibleList.sort())}`;
+
+  if (!maxValueCache[key]) {
+    maxValueCache[key] = getDataMaxValues(fullData, visibleList);
   }
-  maxChartValue = Math.max(maxChartValue, minLineDelta * (linesCount - 1));
 
-  return maxChartValue;
-}, 10);
+  const cachedValue = maxValueCache[key];
+  const spikeInRange = cachedValue.find(c => c.x >= startDate && c.x <= endDate);
+
+  if (spikeInRange) {
+    const axis = getAxisColumn(fullData);
+    const columns = getChartColumns(fullData, visibleList);
+
+    const startPos = axis.indexOf(startDate);
+    const startValue = roundMaxValue(Math.max(...columns.map(c => c[startPos])));
+
+    const endPos = axis.indexOf(endDate);
+    const endValue = roundMaxValue(Math.max(...columns.map(c => c[endPos])));
+
+    return Math.max(startValue, endValue, spikeInRange.value);
+  }
+
+  return maxValueFullCalculation(fullData, startDate, endDate, visibleList);
+};

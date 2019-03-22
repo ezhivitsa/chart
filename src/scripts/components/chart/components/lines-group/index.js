@@ -94,7 +94,7 @@ class LinesGroup {
           y: this._height - 5,
         },
       },
-      value > 10000 ? `${value / 1000}K` : value,
+      value > 10000 ? `${Math.round(value / 100) / 10}K` : value,
     );
 
     return this._svgManipulator.createElement(

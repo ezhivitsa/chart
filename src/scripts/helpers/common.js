@@ -1,15 +1,17 @@
-const getArgKeys = (args) => {
-  return args.map((a) => {
-    if (a instanceof Array && a.length) {
-      return `${a[0]}-${a[a.length - 1]}-${a.length}`;
-    }
+export const getArgKey = (a) => {
+  if (a instanceof Array && a.length) {
+    return `${a[0]}-${a[a.length - 1]}-${a.length}`;
+  }
 
-    if (typeof a === 'object' && a !== null) {
-      return a.id || a;
-    }
+  if (typeof a === 'object' && a !== null) {
+    return a.id || a;
+  }
 
-    return a;
-  });
+  return a;
+};
+
+export const getArgKeys = (args) => {
+  return args.map(a => getArgKey(a));
 };
 
 export const memo = (func) => {
