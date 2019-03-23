@@ -125,15 +125,13 @@ class ChartsGroup {
     );
 
     let maxValue = this._maxValue;
-    const progress = Math.abs(this._newMaxValue - this._maxValue) / 120 * (timestamp - this._start);
+    const progress = (this._newMaxValue - this._maxValue) / 120 * (timestamp - this._start);
 
     if (this._newMaxValue !== maxValue) {
-      const sign = this._newMaxValue > maxValue ? 1 : -1;
-
       maxValue += Math.min(
-        Math.abs(this._newMaxValue - maxValue),
+        this._newMaxValue - maxValue,
         progress,
-      ) * sign;
+      );
     }
 
     originalColumns.forEach((column, index) => {

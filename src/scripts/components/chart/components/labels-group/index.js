@@ -1,5 +1,5 @@
 import { dateToString } from 'helpers/dateTime';
-import { getValuesFromArray } from 'helpers/array';
+import { getValuesFromArray, uniq } from 'helpers/array';
 import { appendChild } from 'helpers/dom';
 
 import { getAxisColumn } from 'components/chart/utils';
@@ -7,7 +7,11 @@ import { getAxisColumn } from 'components/chart/utils';
 import SVGManipulator from 'svg-manipulator';
 import SvgIdentificators from './identificators';
 
+import { getAdditionalLabels, getLabelsToRemove } from './utils';
+
 import styles from './styles.pcss';
+
+const animationTime = 500;
 
 class LabelsGroup {
   constructor(parent, data, startDate, endDate, width) {
@@ -26,28 +30,19 @@ class LabelsGroup {
     this._actualLabels = [];
     this._labelsToDelete = [];
 
+    this._timeout = null;
+
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
   }
 
-  getMaxLabels() {
-    return Math.max(Math.floor(this._chartWidth / 60), 3);
+  getMaxLabels(chartWidth = this._chartWidth) {
+    return Math.max(Math.floor(chartWidth / 60), 3);
   }
 
   getShowLabels() {
     const column = getAxisColumn(this._data);
-    const labels = column.slice(1).filter((value) => {
-      let addValue = true;
-      if (this._startDate) {
-        addValue = this._startDate <= value;
-      }
-
-      if (this._endDate) {
-        addValue = addValue && this._endDate >= value;
-      }
-
-      return addValue;
-    });
+    const labels = column.slice(1);
 
     return getValuesFromArray(labels, this._maxLabels);
   }
@@ -61,8 +56,27 @@ class LabelsGroup {
     const [first] = axisColumn;
     const last = axisColumn[axisColumn.length - 1];
 
-    this._chartWidth = this._width * (last - first) / (end - start);
-    this._chartStart = this._chartWidth * (start - first) / (last - first);
+    const newChartWidth = this._width * (last - first) / (end - start);
+    this._chartStart = newChartWidth * (start - first) / (last - first);
+
+    if (this._chartWidth !== newChartWidth) {
+      // add new labels and hide old
+      this._chartWidth = newChartWidth;
+
+      this._maxLabels = this.getMaxLabels();
+      this.renderNewLegend();
+    }
+
+    this.updateStartPosition();
+  }
+
+  updateStartPosition() {
+    this._svgManipulator.updateElement(
+      this._identificators.group,
+      {
+        styles: { transform: `translateX(-${this._chartStart}px)` },
+      },
+    );
   }
 
   updateWidth(width) {
@@ -70,58 +84,142 @@ class LabelsGroup {
     this._maxLabels = this.getMaxLabels();
 
     this.updateArea(this._startDate, this._endDate);
-    this.renderLegend();
   }
 
   renderNewLegend = () => {
-    const showLabels = this.getShowLabels();
+    let additionalLabels = [];
+    let removeLabels = [];
 
-    const newActualLabels = [];
-    for (let i = 0; i < showLabels.length; i += 1) {
-      newActualLabels.push(showLabels[i]);
+    if (this._maxLabels - this._actualLabels.length >= this._actualLabels.length - 1) {
+      additionalLabels = getAdditionalLabels(this._data, this._actualLabels);
 
-      const pos = this._labelsToDelete.indexOf(showLabels[i]);
-      if (pos !== -1) {
-        this._labelsToDelete.splice(pos, 1);
+      for (let i = 0; i < additionalLabels.length; i += 1) {
+        const pos = this._labelsToDelete.indexOf(additionalLabels[i]);
+        if (pos !== -1) {
+          this._labelsToDelete.splice(pos, 1);
+        }
       }
     }
 
-    for (let i = 0; i < this._actualLabels.length; i += 1) {
-      if (!newActualLabels.includes(this._actualLabels[i])) {
-        this._labelsToDelete.push(this._actualLabels[i]);
-      }
+    if (this._maxLabels < this._actualLabels.length) {
+      removeLabels = getLabelsToRemove(this._actualLabels);
     }
 
-    this._actualLabels = newActualLabels;
-  }
+    this._actualLabels.push(...additionalLabels);
+    this._actualLabels = uniq(this._actualLabels);
+    this._actualLabels.sort();
 
-  renderLegend = () => {
-    const showLabels = this.getShowLabels();
-    this._actualLabels = showLabels;
-    const showLabelLen = (this._chartWidth - 45) / (showLabels.length - 1);
-
-    return showLabels.map((c, index) => {
-      const dateTime = new Date(c);
-      const dateTimeString = dateToString(dateTime);
-
-      const translate = index * showLabelLen;
-      return this._svgManipulator.createElement(
-        'text',
-        this._identificators.legend(dateTimeString),
-        {
-          attributes: {
-            x: 0,
-            y: 0,
-          },
-          styles: {
-            opacity: 1,
-            transform: `translateX(${translate}px)`,
-          },
-          className: styles.text,
-        },
-        dateTimeString,
+    const showLabelLen = (this._chartWidth - 45) / (this._actualLabels.length - 1);
+    const labelEls = this._actualLabels.map((label, index) => {
+      return this.renderLabel(
+        label,
+        index,
+        showLabelLen,
+        additionalLabels.includes(label) || removeLabels.includes(label),
       );
     });
+
+    this._labelsToDelete.push(...removeLabels);
+    this._labelsToDelete = uniq(this._labelsToDelete);
+
+    appendChild(
+      this._svgManipulator.getElementById(this._identificators.group),
+      labelEls,
+    );
+
+    if (additionalLabels.length || removeLabels.length) {
+      this.animateLabels();
+    }
+  }
+
+  animateLabels = () => {
+    setTimeout(() => {
+      this.renderLabels(this._actualLabels, this._chartWidth);
+      this.removeOldLabelsTimeout();
+    }, 20);
+
+    setTimeout(() => {
+      for (let i = 0; i < this._labelsToDelete.length; i += 1) {
+        const pos = this._actualLabels.indexOf(this._labelsToDelete[i]);
+        if (pos !== -1) {
+          this._actualLabels.splice(pos, 1);
+        }
+      }
+    }, 50);
+  }
+
+  renderLabel(label, index, showLabelLen, hidden) {
+    const dateTime = new Date(label);
+    const dateTimeString = dateToString(dateTime);
+
+    const translate = index * showLabelLen;
+
+    return this._svgManipulator.createElement(
+      'text',
+      this._identificators.legend(label),
+      {
+        attributes: {
+          x: 0,
+          y: 0,
+        },
+        styles: {
+          opacity: hidden ? 0 : 1,
+          transform: `translateX(${translate}px)`,
+        },
+        className: styles.text,
+      },
+      dateTimeString,
+    );
+  }
+
+  renderLabels(labels, chartWidth, isHidden) {
+    const showLabelLen = (chartWidth - 45) / (labels.length - 1);
+
+    const labelEls = labels.map((label, index) => {
+      return this.renderLabel(
+        label,
+        index,
+        showLabelLen,
+        isHidden || this._labelsToDelete.includes(label),
+      );
+    });
+
+    appendChild(
+      this._svgManipulator.getElementById(this._identificators.group),
+      labelEls,
+    );
+  }
+
+  renderLegend = (chartWidth = this._chartWidth) => {
+    const showLabels = this.getShowLabels();
+    this._actualLabels = showLabels;
+    const showLabelLen = (chartWidth - 45) / (showLabels.length - 1);
+
+    return showLabels.map((c, index) => {
+      return this.renderLabel(c, index, showLabelLen);
+    });
+  }
+
+  removeOldLabelsTimeout() {
+    if (this._timeout) {
+      clearTimeout(this._timeout);
+    }
+
+    this._timeout = setTimeout(this.removeOldLabels, animationTime);
+  }
+
+  removeOldLabels = () => {
+    if (this._labelsToDelete.length) {
+      this._labelsToDelete.forEach((value) => {
+        this._svgManipulator.deleteElement(this._identificators.legend(value));
+
+        const pos = this._actualLabels.indexOf(value);
+        if (pos !== -1) {
+          this._actualLabels.splice(pos, 1);
+        }
+      });
+      this._labelsToDelete = [];
+    }
   }
 
   render() {

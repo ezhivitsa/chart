@@ -72,23 +72,26 @@ export const throttle = (fn, timeout) => {
   let queue = null;
   let lastCall = 0;
 
+  let callArguments = [];
+
   return (...args) => {
     const now = Date.now();
 
-    if (!queue && now - lastCall > timeout) {
+    callArguments = args;
+    if (queue) {
+      return;
+    }
+
+    if (now - lastCall > timeout) {
       lastCall = now;
       fn(...args);
       return;
     }
 
-    if (queue) {
-      clearTimeout(queue);
-    }
-
     queue = setTimeout(() => {
       lastCall = Date.now();
       queue = null;
-      fn(...args);
+      fn(...callArguments);
     }, timeout - now + lastCall);
   };
 };

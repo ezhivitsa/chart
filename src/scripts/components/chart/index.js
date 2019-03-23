@@ -24,7 +24,7 @@ import styles from './styles.pcss';
 const height = 350;
 const chartHeight = 300;
 const miniMapHeight = 50;
-const legendHeight = 20;
+const legendHeight = 30;
 const miniMapPadding = 10;
 const chartTopPaddingHeight = 20;
 
@@ -43,6 +43,7 @@ class Chart {
     const axisColumn = getAxisColumn(this._data).slice(1);
     this._startDate = axisColumn[0]; // eslint-disable-line
     this._endDate = axisColumn[axisColumn.length - 1];
+    this._lastDiff = 1;
 
     this._svgManipulator = new SVGManipulator();
     this._domManipulator = new DOMManipulator();
@@ -78,6 +79,7 @@ class Chart {
     this._minimapSelector = new MiniMapSelector(
       this._wrap,
       this._width,
+      0,
       this.onSelectorUpdateThrottle,
     );
 
@@ -110,7 +112,6 @@ class Chart {
     );
 
     this.renderNewLinesThrottle = throttle(this._lines.renderNewLines, 500);
-    this.renderNewLegendThrottle = throttle(this._legend.renderNewLegend, 30);
   }
 
   onSelectedChanged = (visibleList, hiddenList) => {
@@ -128,8 +129,21 @@ class Chart {
   onSelectorUpdate = (start, end) => {
     const axisColumn = getAxisColumn(this._data).slice(1);
 
-    this._startDate = findAxisValue(axisColumn, start);
-    this._endDate = findAxisValue(axisColumn, end);
+    const startDate = findAxisValue(axisColumn, start);
+
+    const diff = start - end;
+    if (Math.abs(diff - this._lastDiff) < Number.EPSILON) {
+      this._endDate += startDate - this._startDate;
+
+      if (!axisColumn.includes(this._endDate)) {
+        this._endDate = findAxisValue(axisColumn, end);
+      }
+    } else {
+      this._endDate = findAxisValue(axisColumn, end);
+    }
+
+    this._startDate = startDate;
+    this._lastDiff = diff;
 
     this._chartsGroup.updateArea(this._startDate, this._endDate);
 
@@ -137,7 +151,6 @@ class Chart {
     this.renderNewLinesThrottle();
 
     this._legend.updateArea(this._startDate, this._endDate);
-    this.renderNewLegendThrottle();
 
     this._tooltip.updateArea(this._startDate, this._endDate);
   }
@@ -154,6 +167,7 @@ class Chart {
 
     this.addSvg();
     this.chartsGroup();
+    this.labelsGroup();
   }
 
   miniMapGroup() {
@@ -185,6 +199,7 @@ class Chart {
           x: yAxisWidth,
           width: this._width - yAxisWidth,
           height: chartHeight,
+          viewBox: `0 0 ${this._width - yAxisWidth} ${chartHeight}`,
         },
       },
       group,
@@ -196,15 +211,32 @@ class Chart {
   }
 
   labelsGroup() {
-    return this._svgManipulator.createElement(
+    const group = this._svgManipulator.createElement(
       'g',
-      this._identificators.labelsGroup,
+      this._identificators.labelsGroupWrap,
       {
-        styles: {
-          transform: `translate(${yAxisWidth}px, ${chartHeight + legendHeight}px)`,
-        },
+        styles: { transform: 'translateY(20px)' },
       },
     );
+
+    const svg = this._svgManipulator.createElement(
+      'svg',
+      this._identificators.labelsGroup,
+      {
+        attributes: {
+          x: yAxisWidth,
+          y: chartHeight,
+          viewBox: `0 0 ${this._width - yAxisWidth} ${legendHeight}`,
+          width: this._width - yAxisWidth,
+          height: legendHeight,
+        },
+      },
+      group,
+    );
+
+    appendChild(this._svgElement, svg);
+
+    return group;
   }
 
   linesGroup() {
@@ -249,7 +281,6 @@ class Chart {
   renderGroups() {
     appendChild(this._svgElement, [
       this.linesGroup(),
-      this.labelsGroup(),
       this.miniMapGroup(),
     ]);
   }

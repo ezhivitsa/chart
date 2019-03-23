@@ -41,6 +41,7 @@ class Tooltip {
 
   addBodyEvents() {
     document.body.addEventListener('click', this.onBodyClick);
+    document.body.addEventListener('touchstart', this.onBodyClick);
   }
 
   onBodyClick = (e) => {
@@ -100,6 +101,10 @@ class Tooltip {
   }
 
   showTooltip(position) {
+    if (!this._visibleList.length) {
+      return;
+    }
+
     this._domManipulator.updateElement(
       this._identificators.line,
       {
@@ -110,14 +115,14 @@ class Tooltip {
       },
     );
 
-    this._visibleList.forEach((key) => {
+    Object.keys(this._data.names).forEach((key) => {
       this._domManipulator.updateElement(
         this._identificators.point(key),
         {
           styles: {
             left: position.value + 1,
             top: position.columns[key].pos,
-            display: 'block',
+            display: this._visibleList.includes(key) ? 'block' : 'none',
           },
         },
       );
@@ -232,7 +237,7 @@ class Tooltip {
   }
 
   renderListItems(columns = {}) {
-    return this._visibleList.map((key) => {
+    return Object.keys(this._data.names).map((key) => {
       const bigText = this._domManipulator.createElement(
         'span',
         this._identificators.bigText(key),
@@ -259,7 +264,12 @@ class Tooltip {
       return this._domManipulator.createElement(
         'li',
         this._identificators.listItem(key),
-        { className: styles.item },
+        {
+          className: styles.item,
+          styles: {
+            display: this._visibleList.includes(key) ? 'block' : 'none',
+          },
+        },
         [
           bigText,
           smallText,

@@ -32,6 +32,10 @@ class SvgIdentificators extends Identificators {
   get wrap() {
     return this._nameWithId('wrap');
   }
+
+  get labelsGroupWrap() {
+    return this._nameWithId('labels-group-wrap');
+  }
 }
 
 export default SvgIdentificators;

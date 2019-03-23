@@ -103,7 +103,13 @@ export const findAxisValue = (axis, relativeValue) => {
     }
 
     if (approximateValue >= axis[i] && approximateValue < axis[i + 1]) {
-      return axis[i];
+      const halfDistance = (axis[i + 1] - axis[i]) / 2;
+
+      if (approximateValue - halfDistance <= axis[i]) {
+        return axis[i];
+      }
+
+      return axis[i + 1];
     }
   }
 

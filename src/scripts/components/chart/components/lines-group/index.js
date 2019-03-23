@@ -23,6 +23,8 @@ class LinesGroup {
     this._startDate = startDate;
     this._endDate = endDate;
 
+    this._startTimeout = null;
+
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
 
@@ -131,10 +133,6 @@ class LinesGroup {
   }
 
   renderNewLines = () => {
-    if (this._newScale) {
-      this._scale = this._newScale;
-    }
-
     const { diff, scale } = this.getLinesData();
 
     this._newScale = scale;
@@ -155,16 +153,24 @@ class LinesGroup {
       }
     }
 
-    this._actualLines = newActualLines;
+    const addNewLines = newActualLines.filter(line => !this._actualLines.includes(line));
 
-    const actualLinesEls = this._actualLines.map((line) => {
-      return this.renderLine(line, this._scale);
+    const actualLinesEls = addNewLines.map((line) => {
+      return this.renderLine(line, this._scale, true);
     });
 
-    const group = this._svgManipulator.getElementById(this._identificators.group);
-    appendChild(group, actualLinesEls);
+    if (addNewLines.length) {
+      this._actualLines = newActualLines;
 
-    this.animateLines();
+      const group = this._svgManipulator.getElementById(this._identificators.group);
+      appendChild(group, actualLinesEls);
+
+      this.animateLines();
+
+      this._startTimeout = null;
+      this._oldScale = this._scale;
+      requestAnimationFrame(this.setScale);
+    }
   }
 
   animateLines() {
@@ -177,11 +183,28 @@ class LinesGroup {
         this.renderLine(value, this._newScale);
       });
 
-      this._scale = this._newScale;
-      this._newScale = null;
-
       this.removeOldLinesTimeout();
-    });
+    }, 20);
+  }
+
+  setScale = (timestamp) => {
+    if (!this._startTimeout) {
+      this._startTimeout = timestamp;
+    }
+
+    const progress = (this._newScale - this._oldScale) / 360 * (timestamp - this._startTimeout);
+
+    if (this._scale !== this._newScale) {
+      this._scale = this._oldScale + Math.min(
+        this._newScale - this._oldScale,
+        progress,
+      );
+
+      requestAnimationFrame(this.setScale);
+    } else {
+      this._oldScale = null;
+      this._startTimeout = null;
+    }
   }
 
   removeOldLinesTimeout() {

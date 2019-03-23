@@ -26,3 +26,15 @@ export const getValuesFromArray = (array, valuesNum) => {
   });
   return result;
 };
+
+export const uniq = (array = []) => {
+  const result = [];
+
+  for (let i = 0; i < array.length; i += 1) {
+    if (!result.includes(array[i])) {
+      result.push(array[i]);
+    }
+  }
+
+  return result;
+}

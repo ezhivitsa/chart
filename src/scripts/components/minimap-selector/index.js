@@ -11,10 +11,19 @@ const selectorTypes = {
   right: 'Right',
 };
 
-const minWidth = 50;
+const simulateClick = (elem) => {
+	// Create our event (with options)
+	const evt = new MouseEvent('click', {
+		bubbles: true,
+		cancelable: true,
+		view: window
+	});
+	// If cancelled, don't dispatch our event
+	const canceled = !elem.dispatchEvent(evt);
+};
 
 class MiniMapSelector {
-  constructor(parent, width, onUpdate) {
+  constructor(parent, width, minWidth, onUpdate) {
     this._parent = parent;
     this._onUpdate = onUpdate;
 
@@ -31,6 +40,8 @@ class MiniMapSelector {
 
     this._mouseDownX = 0;
     this._mouseUpX = 0;
+
+    this._minWidth = Math.max(minWidth, 40);
   }
 
   onMousedown = position => (e) => {
@@ -44,6 +55,8 @@ class MiniMapSelector {
     positions.forEach((pos) => {
       this[`_isMove${pos}`] = pos === position;
     });
+
+    simulateClick(document.body);
   }
 
   onOut = (e) => {
@@ -77,12 +90,12 @@ class MiniMapSelector {
     if (this._isMoveLeft) {
       leftPosition += (this._mouseUpX - this._mouseDownX);
       leftPosition = Math.max(leftPosition, 0);
-      leftPosition = Math.min(leftPosition, this._width - this._rightPosition - minWidth);
+      leftPosition = Math.min(leftPosition, this._width - this._rightPosition - this._minWidth);
     }
     if (this._isMoveRight) {
       rightPosition -= (this._mouseUpX - this._mouseDownX);
       rightPosition = Math.max(rightPosition, 0);
-      rightPosition = Math.min(rightPosition, this._width - this._leftPosition - minWidth);
+      rightPosition = Math.min(rightPosition, this._width - this._leftPosition - this._minWidth);
     }
 
     if (this._isMoveSelector) {
