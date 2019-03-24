@@ -1,5 +1,6 @@
 import { getValuesFromArray } from 'helpers/array';
 import { appendChild } from 'helpers/dom';
+import { isChrome } from 'helpers/common';
 
 import {
   getAxisColumn,
@@ -25,6 +26,18 @@ class MiniMap {
 
     this._identificators = new SvgIdentificators();
     this._svgManipulator = new SVGManipulator();
+
+    this._start = null;
+
+    this._maxValue = 0;
+    this._minValue = 0;
+
+    this._newMaxValue = 0;
+    this._newMinValue = 0;
+    this._newDataColumns = [];
+
+    let axisColumn = getAxisColumn(this._data).slice(1);
+    this._axisColumn = getValuesFromArray(axisColumn, maxMinimapPoints);
   }
 
   renderMinimapChart(columnName, axis, column, maxValue, minValue) {
@@ -47,6 +60,7 @@ class MiniMap {
         styles: {
           stroke: color,
           opacity: this._visibleList.includes(columnName) ? 1 : 0,
+          transition: isChrome ? 'all 0.3s' : 'opacity 0.3s',
         },
         className: styles.path,
       },
@@ -65,7 +79,11 @@ class MiniMap {
       );
     });
 
-    this.render();
+    if (isChrome) {
+      this.render();
+    } else {
+      this.animateCharts();
+    }
   }
 
   updateWidth(width) {
@@ -73,21 +91,82 @@ class MiniMap {
     this.render();
   }
 
-  render() {
+  animateCharts() {
+    const {
+      maxValue,
+      minValue,
+      dataColumns,
+    } = this.calculateMinMaxValues();
+
+    this._newMaxValue = maxValue - minValue;
+    this._newMinValue = minValue;
+    this._newDataColumns = dataColumns;
+
+    requestAnimationFrame(this.startVerticalAnimation);
+  }
+
+  startVerticalAnimation = (timestamp) => {
+    if (!this._start) {
+      this._start = timestamp;
+    }
+
+    let maxValue = this._maxValue;
+    let minValue = this._minValue;
+
+    const maxProgress = (this._newMaxValue - this._maxValue) / 180 * (timestamp - this._start);
+    const minProgress = (this._newMinValue - this._minValue) / 180 * (timestamp - this._start);
+
+    if (
+      this._newMaxValue !== maxValue
+      || this._newMinValue !== minValue
+    ) {
+      const maxValueSign = this._newMaxValue - this._maxValue >= 0 ? 1 : -1;
+      maxValue += Math.min(
+        Math.abs(this._newMaxValue - maxValue),
+        Math.abs(maxProgress),
+      ) * maxValueSign;
+
+      const minValueSign = this._newMinValue - this._minValue >= 0 ? 1 : -1;
+      minValue += Math.min(
+        Math.abs(this._newMinValue - minValue),
+        Math.abs(minProgress),
+      ) * minValueSign;
+    }
+
+    this._newDataColumns.forEach((dataColumn) => {
+      this.renderMinimapChart(
+        dataColumn.name,
+        this._axisColumn,
+        dataColumn.column,
+        maxValue - minValue,
+        minValue,
+      );
+    });
+
+    if (
+      this._newMaxValue !== maxValue
+      || this._newMinValue !== minValue
+    ) {
+      requestAnimationFrame(this.startVerticalAnimation);
+    } else {
+      this._start = null;
+      this._maxValue = maxValue;
+      this._minValue = minValue;
+    }
+  }
+
+  calculateMinMaxValues() {
     const columns = getChartColumns(this._data);
 
-    let axisColumn = getAxisColumn(this._data).slice(1);
-    axisColumn = getValuesFromArray(axisColumn, maxMinimapPoints);
+    const dataColumns = [];
 
     let maxValue = 0;
     let minValue = Infinity;
 
-    const dataColumns = [];
-
     for (let i = 0; i < columns.length; i += 1) {
       if (
-        !this._visibleList.length ||
-        this._visibleList.includes(columns[i][0])
+        !this._visibleList.length
+        || this._visibleList.includes(columns[i][0])
       ) {
         const column = columns[i].slice(1);
         const dataColumn = getValuesFromArray(column, maxMinimapPoints);
@@ -101,10 +180,27 @@ class MiniMap {
       }
     }
 
+    return {
+      maxValue,
+      minValue,
+      dataColumns,
+    };
+  }
+
+  render() {
+    const {
+      maxValue,
+      minValue,
+      dataColumns,
+    } = this.calculateMinMaxValues();
+
+    this._maxValue = maxValue - minValue;
+    this._minValue = minValue;
+
     const paths = dataColumns.map((dataColumn) => {
       return this.renderMinimapChart(
         dataColumn.name,
-        axisColumn,
+        this._axisColumn,
         dataColumn.column,
         maxValue - minValue,
         minValue,

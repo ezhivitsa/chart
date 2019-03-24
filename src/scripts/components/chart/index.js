@@ -118,7 +118,6 @@ class Chart {
     this._minimap.updateVisible(visibleList, hiddenList);
 
     this._chartsGroup.updateVisible(visibleList, hiddenList);
-    this._chartsGroup.render();
 
     this._lines.updateVisible(visibleList);
     this._lines.renderNewLines();

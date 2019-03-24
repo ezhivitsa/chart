@@ -1,4 +1,5 @@
 import { appendChild } from 'helpers/dom';
+import { isChrome } from 'helpers/common';
 
 import {
   getAxisColumn,
@@ -97,11 +98,17 @@ class ChartsGroup {
         {
           styles: {
             opacity: visibleList.includes(key) ? 1 : 0,
-            transition: 'all 0.5s',
+            transition: isChrome ? 'all 0.5s' : 'opacity 0.5s',
           },
         },
       );
     });
+
+    if (isChrome) {
+      this.render();
+    } else {
+      this.updateArea(this._startDate, this._endDate);
+    }
   }
 
   updateWidth(width) {
@@ -125,13 +132,14 @@ class ChartsGroup {
     );
 
     let maxValue = this._maxValue;
-    const progress = (this._newMaxValue - this._maxValue) / 120 * (timestamp - this._start);
+    const progress = (this._newMaxValue - this._maxValue) / 300 * (timestamp - this._start);
 
     if (this._newMaxValue !== maxValue) {
+      const sign = this._newMaxValue - this._maxValue >= 0 ? 1 : -1;
       maxValue += Math.min(
-        this._newMaxValue - maxValue,
-        progress,
-      );
+        Math.abs(this._newMaxValue - maxValue),
+        Math.abs(progress),
+      ) * sign;
     }
 
     originalColumns.forEach((column, index) => {
