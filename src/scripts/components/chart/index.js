@@ -167,18 +167,33 @@ class Chart {
     this.addSvg();
     this.chartsGroup();
     this.labelsGroup();
+    this.miniMapGroup();
   }
 
   miniMapGroup() {
-    return this._svgManipulator.createElement(
+    const group = this._svgManipulator.getElement(
       'g',
       this._identificators.miniMapGroupWrap,
+    );
+
+    const svg = this._svgManipulator.createElement(
+      'svg',
+      this._identificators.miniMapGroup,
       {
-        styles: {
-          transform: `translateY(${height + miniMapPadding / 2}px)`,
+        attributes: {
+          x: 0,
+          y: height + miniMapPadding / 2,
+          width: this._width,
+          height: miniMapHeight,
+          viewBox: `0 0 ${this._width} ${miniMapHeight}`,
         },
       },
+      group,
     );
+
+    appendChild(this._svgElement, svg);
+
+    return group;
   }
 
   chartsGroup() {
@@ -278,10 +293,7 @@ class Chart {
   }
 
   renderGroups() {
-    appendChild(this._svgElement, [
-      this.linesGroup(),
-      this.miniMapGroup(),
-    ]);
+    appendChild(this._svgElement, this.linesGroup());
   }
 
   render() {

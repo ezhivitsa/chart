@@ -9,6 +9,10 @@ class SvgIdentificators extends Identificators {
     return this._nameWithId('defs');
   }
 
+  get miniMapGroup() {
+    return this._nameWithId('minimap-group');
+  }
+
   get miniMapGroupWrap() {
     return this._nameWithId('minimap-group-wrap');
   }

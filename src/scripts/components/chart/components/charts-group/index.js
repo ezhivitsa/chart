@@ -132,7 +132,7 @@ class ChartsGroup {
     );
 
     let maxValue = this._maxValue;
-    const progress = (this._newMaxValue - this._maxValue) / 300 * (timestamp - this._start);
+    const progress = (this._newMaxValue - this._maxValue) / 360 * (timestamp - this._start);
 
     if (this._newMaxValue !== maxValue) {
       const sign = this._newMaxValue - this._maxValue >= 0 ? 1 : -1;

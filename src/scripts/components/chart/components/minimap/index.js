@@ -98,7 +98,7 @@ class MiniMap {
       dataColumns,
     } = this.calculateMinMaxValues();
 
-    this._newMaxValue = maxValue - minValue;
+    this._newMaxValue = maxValue;
     this._newMinValue = minValue;
     this._newDataColumns = dataColumns;
 
@@ -194,7 +194,7 @@ class MiniMap {
       dataColumns,
     } = this.calculateMinMaxValues();
 
-    this._maxValue = maxValue - minValue;
+    this._maxValue = maxValue;
     this._minValue = minValue;
 
     const paths = dataColumns.map((dataColumn) => {
